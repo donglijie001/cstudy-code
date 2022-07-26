@@ -5,5 +5,12 @@
 #更新软件源以后，卸载系统自带的vim
 sudo apt remove vim-common
 sudo apt install vim
-
+#安装编译工具
+sudo apt-get install subversion 
+sudo apt-get install g++ flex patch 
+sudo apt-get install libncurses5-dev zlib1g-dev
+ sudo apt-get install git-core 
+ sudo apt-get install libssl-dev 
+ sudo apt-get install gawk 
+ sudo apt-get install xz-util
 ```
