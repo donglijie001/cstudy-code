@@ -15,3 +15,4 @@ sudo apt-get install gawk
 # 这个在ubuntu20上找不到，暂时先不安装了。
 sudo apt-get install xz-util
 ```
+https://github.com/DarkCaster/OpenWrt-1505-Custom
