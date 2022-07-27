@@ -9,8 +9,9 @@ sudo apt install vim
 sudo apt-get install subversion 
 sudo apt-get install g++ flex patch 
 sudo apt-get install libncurses5-dev zlib1g-dev
- sudo apt-get install git-core 
- sudo apt-get install libssl-dev 
- sudo apt-get install gawk 
- sudo apt-get install xz-util
+sudo apt-get install git-core 
+sudo apt-get install libssl-dev 
+sudo apt-get install gawk 
+# 这个在ubuntu20上找不到，暂时先不安装了。
+sudo apt-get install xz-util
 ```
