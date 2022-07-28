@@ -46,3 +46,7 @@ sudo apt install python2
 ![2022-07-28-00-30-42.png](openwrt.assets/2022-07-28-00-30-42.png)
 执行升级操作出现了下面这个问题，不识别make。
 ![2022-07-27-21-51-04.png](openwrt.assets/2022-07-27-21-51-04.png)
+
+编译参考链接：https://blog.csdn.net/cheenbee/article/details/108488374
+https://doc.embedfire.com/openwrt/user_manal/zh/latest/User_Manual/compile/make_menuconfig.html
+https://wp.gxnas.com/2367.html
