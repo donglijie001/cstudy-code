@@ -1,10 +1,27 @@
 # 编译环境搭建
+我放弃了编译15，太麻烦了。
+## ubuntu16 编译
+```
+执行 openwrt目录下的init.exp文件，安装依赖。
+# 下载源码
+git clone git@github.com:openwrt/chaos_calmer.git
+git checkout v15.05
+./scripts/feeds update #升级
+./scripts/feeds install -a #安装所有
+make defconfig
+make menuconfig
+make V=s
+# 编译的时候，有一个软件，一直下载不下来。我直接把它复制到对应目录了。
+cp odhcpd-2015-05-21.tar.bz2 chaos_calmer/dl/odhcpd-2015-05-21.tar.bz2
+```
+然后就编译成功了，但是好像并没有编译很久。我弄错了，
 ## 安装ubuntu虚拟机
 这里我是用的vmware 安装的ubuntu20虚拟机。
 ```
 #更新软件源以后，卸载系统自带的vim
 sudo apt remove vim-common
 sudo apt install vim
+# 不用再执行下面的命令。
 #安装编译工具
 sudo apt-get install subversion 
 sudo apt-get install g++ flex patch 
@@ -44,7 +61,8 @@ sudo apt install python2
 ```
 输入make menuconfig 出现下面的界面
 ![2022-07-28-00-30-42.png](openwrt.assets/2022-07-28-00-30-42.png)
-
+编译生成vmware镜像。
+![2022-07-30-23-30-41.png](openwrt.assets/2022-07-30-23-30-41.png)
 ```
 输入`make V=s`进行编译，出现下面的错误：
 freadahead.c:91:3: error: #error "Please port gnulib freadahead.c to your platform! Look at the definition of fflush, fread, ungetc on your system, then report this to bug-gnulib."
@@ -56,6 +74,15 @@ freadahead.c:91:3: error: #error "Please port gnulib freadahead.c to your platfo
 ```
 # 这个错误似乎是ubuntu20才有的，cd的这个目录是根据上面的截图 leaving directory 那行日志来的
 cd build_dir/host/m4-1.4.17
+sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' lib/*.c
+echo "#define _IO_IN_BACKUP 0x100" >> lib/stdio-impl.h
+```
+
+![2022-07-30-23-36-39.png](openwrt.assets/2022-07-30-23-36-39.png)
+```
+lib/fseterr.c:77:3: error: #error "Please port gnulib fseterr.c to your platform! Look at the definitions of ferror and clearerr on your system, then report this to bug-gnulib."
+解决方案
+cd build_dir/host/bison-3.0.2/
 sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' lib/*.c
 echo "#define _IO_IN_BACKUP 0x100" >> lib/stdio-impl.h
 ```
@@ -127,6 +154,55 @@ include/linux/compiler-gcc.h:114:1: fatal error: linux/compiler-gcc9.h: No such 
 https://askubuntu.com/questions/1328266/fatal-error-linux-compiler-gcc9-h-no-such-file-or-directory
 ```
 
+```
+
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.o: in function `write_special_file':
+/home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:944: undefined reference to `major'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:944: undefined reference to `minor'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.o: in function `recursive_populate_directory':
+/home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:1273: undefined reference to `minor'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:1273: undefined reference to `major'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:1263: undefined reference to `minor'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:1263: undefined reference to `major'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.o: in function `interpret_table_entry':
+/home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:467: undefined reference to `makedev'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:503: undefined reference to `makedev'
+/usr/bin/ld: /home/donglijie/openwrt/chaos_calmer/build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c:510: undefined reference to `makedev'
+解决方案
+vim build_dir/host/mtd-utils-1.5.1/mkfs.jffs2.c 中添加 #include <sys/sysmacros.h>
+vim build_dir/host/mtd-utils-1.5.1/ubi-utils/libubi.c  中添加 #include <sys/sysmacros.h>
+vim build_dir/host/mtd-utils-1.5.1/mkfs.ubifs/devtable.c 中添加 #include <sys/sysmacros.h>
+vim build_dir/host/mtd-utils-1.5.1/mkfs.ubifs/mkfs.ubifs.c 中添加 #include <sys/sysmacros.h>
+```
+
+```
+freadahead.c: In function 'freadahead':
+freadahead.c:64:3: error: #error "Please port gnulib freadahead.c to your platform! Look at the definition of fflush, fread on your system, then report this to bug-gnulib."
+   64 |  #error "Please port gnulib freadahead.c to your platform! Look at the definition of fflush, fread on your system, then report this to bug-gnulib."
+      |   ^~~~~
+make[8]: *** [Makefile:890: freadahead.o] Error 1
+make[8]: Leaving directory '/home/donglijie/openwrt/chaos_calmer/build_dir/host/findutils-4.4.2/gnulib/lib'
+解决方案：
+cd build_dir/host/findutils-4.4.2
+sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' lib/*.c
+echo "#define _IO_IN_BACKUP 0x100" >> lib/stdio-impl.h
+ 
+sed -i 's/IO_ftrylockfile/IO_EOF_SEEN/' gnulib/lib/*.c
+echo "#define _IO_IN_BACKUP 0x100" >> gnulib/lib/stdio-impl.h
+echo "#define _IO_ferror_unlocked" >> gnulib/lib/stdio-impl.h
+sed -i '/unistd/a #include <sys/sysmacros.h>' gnulib/lib/mountlist.c
+
+
+在tools/findutils路径下，自行修改其Makefile中的定义：
+PKG_NAME:=findutils
+PKG_VERSION:=4.6.0
+还要修改md5sum：
+原来的是：351cc4adb07d54877fa15f75fb77d39f
+修改后：9936aa8009438ce185bea2694a997fc1
+但是这样直接改，还是不行，下载不下来，我直接进入到 dl 目录下，执行下载命令。
+wget https://ftp.gnu.org/gnu/findutils/findutils-4.6.0.tar.gz
+直接下太慢了，我给拷进来了。
+```
 [编译问题参考链接1](https://blog.csdn.net/kuangzuxiaoN/article/details/121458746)
 [编译问题解决参考链接](http://m.blog.chinaunix.net/uid-20680966-id-5833778.html)
 编译参考链接：https://blog.csdn.net/cheenbee/article/details/108488374
