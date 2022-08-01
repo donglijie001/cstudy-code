@@ -1,4 +1,4 @@
-我放弃了编译15，太麻烦了。直接编译openwrt21,一把成功。
+编译15，太麻烦了。直接编译openwrt21,一把成功。
 # 虚拟机安装
 我一开始安装的时候，用的是从官网上下载的openwrt的镜像，[参考这个链接](https://blog.csdn.net/Cx2008Lxl/article/details/122988514) 先用qemu-img 这个软件，在windows上把从官网上下载的img镜像给转换成vmware能识别的镜像。然后进行安装，但是并没有成功，后来我自己编译的时候选择了生成vmware的镜像，然后就安装成功了，[新的参考链接](https://blog.csdn.net/m0_46296905/article/details/115803974)，
 安装过程：
