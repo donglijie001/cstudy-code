@@ -19,6 +19,7 @@ struct arguments {
 
 static error_t opt_handler(int key, char *arg, struct argp_state *state) {
     // state 是参数解析的上下文，这里是把存放解析结果的结构体通过state给传递进来了。在解析参数的时候，把解析到的参数放到arguments里
+    // 这里用的全部都是短选项，arguments->data = arg; 就是把解析到的结果给放到argument里，和我之前看到的argp的例子不太一样
     struct arguments *arguments = state->input;
 
     switch(key) {
