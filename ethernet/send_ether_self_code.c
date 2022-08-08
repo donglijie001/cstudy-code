@@ -20,7 +20,18 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state){
 static struct arguments const * parse_arguments(int argc, char *argv[]){
     // 这里声明了一个结构体数组
     struct argp_option option[] ={
+        // 网卡来源地址的命令行选项
+         {"iface", 'i', "IFACE", 0, "name of iface for sending"},
+         // 目的地址网卡的命令行选项
+          {"to", 't', "TO", 0, "destination mac address"},
 
+        // 发送数据类型的命令行选项
+        {"type", 'T', "TYPE", 0, "data type"},
+
+        // 发送数据的命令行选项 d是缩写
+        {"data", 'd', "DATA", 0, "data to send"},
+        // 空的终止记录
+        { 0 }
     };
 
 return NULL;
