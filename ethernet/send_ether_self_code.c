@@ -14,7 +14,14 @@ struct arguments{
 
 // 命令行参数解析函数，这里使用static关键字，是为了限制这个函数的作用域仅限于本文件。
 static error_t parse_opt (int key, char *arg, struct argp_state *state){
-  switch (key){}
+  // 首先从state中获取获取 用来存放解析后参数的arguemnts 结构体
+  // 这里使用箭头获取struct state的值，是因为state 是一个结构体指针，所以访问其属性使用箭头，或者(*state).input 来代替，
+  // 即对struct 变量进行访问使用的是点 ，而对struct指针进行访问使用的是
+  struct arguments *arguments = state->input;
+
+  switch (key){
+
+  }
   return 0;
 }
 static struct arguments const * parse_arguments(int argc, char *argv[]){
