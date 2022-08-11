@@ -1,5 +1,16 @@
 #include <stdio.h>
 #include <argp.h>
+
+// 以太网的一些宏定义
+#define MAX_ETHERNET_DATA_SIZE 1500
+
+#define ETHERNET_HEADER_SIZE 14
+#define ETHERNET_DST_ADDR_OFFSET 0
+#define ETHERNET_SRC_ADDR_OFFSET 6
+#define ETHERNET_TYPE_OFFSET 12
+#define ETHERNET_DATA_OFFSET 14
+
+#define MAC_BYTES 6
 struct arguments{
     // 发送数据的网卡地址，使用const声明一个常量，但是这里可以修改iface指向的位置。
     char const *iface;
@@ -85,5 +96,6 @@ static struct arguments const * parse_arguments(int argc, char *argv[]){
 }
 int main(int argc,char * argv[]){
     struct arguments const *arguments=parse_arguments(argc,argv);
+    printf("data is:%s\n", arguments->data);
 
 }
