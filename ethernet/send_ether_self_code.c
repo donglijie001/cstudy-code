@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <argp.h>
 
-// 以太网的一些宏定义
+// 以太网的一些宏定义,定义成常量
 #define MAX_ETHERNET_DATA_SIZE 1500
 
 #define ETHERNET_HEADER_SIZE 14
