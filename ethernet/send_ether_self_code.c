@@ -87,15 +87,36 @@ static struct arguments const * parse_arguments(int argc, char *argv[]){
         .type = 0x0900,
         // default data, 46 bytes string of 'a'
         // since for ethernet frame data is 46 bytes at least
-        .data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        .data = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     };
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
     return &arguments;
 }
+/**
+    将十六进制mac地址转成数字，a mac地址，类似："08:00:27:c8:04:83"，n 长度为6的数组，用来存放转换后的数字
+*/
+int mac_aton(const char *a, unsigned char *n){
+    int matches =  sscanf(a, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", n, n+1, n+2,
+                         n+3, n+4, n+5);
+    return (6 == matches ? 0 : -1);
+}
 int main(int argc,char * argv[]){
+    // 解析参数
     struct arguments const *arguments=parse_arguments(argc,argv);
-    printf("data is:%s\n", arguments->data);
+    if(arguments==NULL){
+        printf("%s","Bad command line options given");
+        return 1;
+    }
+    // 用来存放解析后的mac地址
+    unsigned char to[6];
+    int res = mac_aton(arguments->to, to);
+    if (0 != res) {
+        printf("Bad MAC address given: %s\n", arguments->to);
+        return 2;
+    }
+    printf("%s\n", arguments->data);
+    return 0;
 
 }
