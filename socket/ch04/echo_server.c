@@ -1,4 +1,3 @@
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +19,7 @@ int main(int argc,char* argv[]){
         exit(1);
     }
     // 创建TCP socket
+    
     printf("lll");
     serv_sock = socket(PF_INET,SOCK_STREAM , 0);
     if (serv_sock == -1) {
@@ -27,6 +27,7 @@ int main(int argc,char* argv[]){
     }else {
         printf("serv_sock is:%d",serv_sock);
     }
+
     // 格式化内存
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
