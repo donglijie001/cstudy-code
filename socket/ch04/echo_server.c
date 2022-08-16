@@ -8,7 +8,6 @@
 #define BUF_SIZE 1024
 void error_handling(char *message);
 int main(int argc,char* argv[]){
-    printf("argc is :%d\n", argc);
     int serv_sock,clnt_sock;
     struct sockaddr_in serv_addr,clnt_addr;
     socklen_t clnt_addr_size;
@@ -19,8 +18,6 @@ int main(int argc,char* argv[]){
         exit(1);
     }
     // 创建TCP socket
-    
-    printf("lll\n");
     serv_sock = socket(PF_INET,SOCK_STREAM , 0);
     printf("serv_sock is:%d",serv_sock);
     if (serv_sock == -1) {
@@ -41,11 +38,8 @@ int main(int argc,char* argv[]){
         error_handling("listen() error");
     }
     clnt_addr_size= sizeof(clnt_addr);
-    printf(";;;;");
-    
+    // server 打印出来connected 字段，需要客户端那边退出，断开连接
     for( i=0;i<5;i++){
-        printf("lllllll\n");
-        
         clnt_sock=accept(serv_sock, (struct sockaddr*)&clnt_addr, &clnt_addr_size);
         if (clnt_sock==-1) {
             error_handling("accept() error");
