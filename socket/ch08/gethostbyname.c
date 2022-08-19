@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 void error_handling(char *message);
-
+// 根据域名获取ip地址
 int main(int argc,char* argv[]){
     int i;
     struct hostent *host;
