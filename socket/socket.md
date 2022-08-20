@@ -75,3 +75,27 @@ myaddr 存有地址信息的结构体变量地址值。
 addrlen 第二个结构体变量的长度。
 ```
 ## 04 基于TCP的服务端/客户端（1）
+## 08 域名及网络地址
+利用域名获取IP地址
+```
+#include<netdb.h>
+struct hostent * gethostbyname(const char * hostname);
+
+struct hostent{
+    char * h_name ; // 官方域名
+    char ** h_aliases; // 其他域名
+    int h_addrtype; // 地址类型，
+    int h_length; // IP地址长度
+    char ** h_addr_list; // 地址列表
+}
+
+```
+## 08 域名及网络地址
+根据域名获取ip地址
+```
+gethostbyname
+```
+根据ip地址获取域名
+```
+gethostbyaddr
+```
