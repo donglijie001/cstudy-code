@@ -99,3 +99,13 @@ gethostbyname
 ```
 gethostbyaddr
 ```
+## 09 套接字的多种可选项
+### 9.1 套接字的可选项和I/O缓冲大小
+对可选项进行操作
+```
+#include <sys/socket.h>
+//读取套接字可选项
+int getsockopt(int sock,int level,int optnmae,void *optval,socklen_t *optlen);
+//更改套接字可选项
+int getsockopt(int sock,int level,int optnmae,void *optval,socklen_t *optlen);
+```
