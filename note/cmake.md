@@ -2,6 +2,8 @@ https://aiden-dong.gitee.io/2019/07/20/CMake%E6%95%99%E7%A8%8B%E4%B9%8BCMake%E4%
 
 
 vscode debug ：https://zhuanlan.zhihu.com/p/398428136
+
+https://sourceware.org/gdb/wiki/PermissionsDarwin#Troubleshooting_.2F_further_diagnosis
 tasks.json 内容
 ```
 {
