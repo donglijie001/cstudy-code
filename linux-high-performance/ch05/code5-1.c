@@ -1,5 +1,6 @@
 #include <stdio.h>
 void byteorder(){
+    // union 里面有多个参数，但是这些参数都指向同一个地址
     union{
         short value;
         char union_bytes[sizeof(short)];
