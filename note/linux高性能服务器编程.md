@@ -324,3 +324,45 @@ linux提供了如下四个函数来完成主机字节序和网络字节序的转
 
 ![image-20220905084358166](linux高性能服务器编程.assets/image-20220905084358166.png)
 
+### 通用的socket地址
+
+![image-20220906133343410](linux高性能服务器编程.assets/image-20220906133343410.png)
+
+下面这个是
+
+![image-20220906133717419](linux高性能服务器编程.assets/image-20220906133717419.png)
+
+### 专用socket地址
+
+
+
+![image-20220906132108874](linux高性能服务器编程.assets/image-20220906132108874.png)
+
+上面这个是书上的，但是我看了一下本地的源码，是下面这样的，多了一个字段。
+
+![image-20220906132224665](linux高性能服务器编程.assets/image-20220906132224665.png)
+
+TCP/IP协议族有sockaddr_in 和sockaddr_in6两个专用的socket地址结构体，分别用于ipv4和ipv6。
+
+![image-20220906132810835](linux高性能服务器编程.assets/image-20220906132810835.png)
+
+这是我看的源码，还是不太一样，多了几个字段。
+
+![image-20220906132738187](linux高性能服务器编程.assets/image-20220906132738187.png)
+
+所有专用的socket地址（以及sockaddr_storage）类型的变量在实际使用时都需要转化为通用socket地址类型sockaddr，因为所有socket编程接口使用的地址参数类型都是sockaddr。
+
+### IP地址转换函数
+
+下面三个函数可用于ip地址的转换：
+
+![image-20220906134721524](linux高性能服务器编程.assets/image-20220906134721524.png)
+
+Inet_addr用于将用点分十进制字符串表示的ipv4地址转化为用网络字节序整数表示的ipv4
+
+地址。失败时会返回INADDR_NONE。
+
+inet_aton 和 inet_addr类似，但是它将转换结果存储于参数inp执行的地址结构中，成功时返回1，失败时返回0。
+
+inet_ntoa 用于将网络字节序整数表示的IPV4地址转换为点分十进制的ipv4地址，该函数内部用一个静态变量存储转化结果，函数的返回值执行该静态内存，因此inet_ntoa是不可重入的。
+
