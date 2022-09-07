@@ -366,3 +366,66 @@ inet_aton 和 inet_addr类似，但是它将转换结果存储于参数inp执行
 
 inet_ntoa 用于将网络字节序整数表示的IPV4地址转换为点分十进制的ipv4地址，该函数内部用一个静态变量存储转化结果，函数的返回值执行该静态内存，因此inet_ntoa是不可重入的。
 
+比如下面这段代码：
+
+```
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <stdio.h>
+int main(){
+   in_addr_t addrees;
+   addrees = inet_addr("255.255.255.25");
+   printf("Networked ordered integer addr:%d \n",addrees);
+   printf("Networked ordered integer addr:%x \n",addrees);
+}
+```
+
+它的输出结果是：
+
+```
+Networked ordered integer addr:436207615 
+Networked ordered integer addr:19ffffff  
+```
+
+inet_addr的输入参数是一个点分十进制的ip字符串，转换结果是一个数字，类型是in_addr_t ，这个是在`<netinet/in.h>` 头文件里定义的一个__uint32_t 类型的变量。从上面的程序来看，它就是把ip地址从后往前读，转成网络字节序。
+
+## 创建socket
+
+```
+#include<sys/socket.h>
+int socket(int domain,int type,int protocol);
+# 成功时返回文件描述符，失败时返回-1.
+```
+
+- domain: 套接字中使用的协议族信息
+- type： 套接字数据传输类型信息
+- protocol：计算机间通信中使用的协议信息
+
+#### 协议族分类
+
+- PF_INET   ipv4 互联网协议族
+- PF_INET6  ipv6 互联网协议族
+- PF_LOCAL  本地通信的unix协议族
+- PF_PACKET 底层套接字的协议族
+- PF_IPX    IPX Novell协议族
+
+> 套接字中实际采用的最终协议信息是通过socket函数的第三个参数传递的，在制定的协议族范围内通过第一个参数决定第三个参数
+
+#### 套接字类型type
+
+- SOCK_STREAM 面向连接的套接字，tcp连接，可靠传输
+- SOCK_DGRAM 面向消息的套接字，udp数据报，不可靠传输
+
+#### 协议的最终选择
+
+socket 套接字的前两个参数基本上已经可以决定数据传输所采用的协议，所以大部分情况下第三个参数设置为0即可，除非遇到**同一协议族中存在多个数据传输方式相同的协议**
+
+## 命名socket
+
+实际上就是调用bind函数，给socket绑定ip地址和端口号。
+
+## 监听socket
+
+这个就是调用listen函数，转为可监听状态，这个时候会给socket创建一个监听队列。队列的最大长度是根据backlog来的。
+
+![image-20220906213106765](linux高性能服务器编程.assets/image-20220906213106765.png)
