@@ -19,5 +19,36 @@ int main (int ac,char* av[]){
         }
     }
     return 0;
-
+}
+void do_more(FILE *fp){
+    char line[LINELEN];
+    int num_of_lines =0;
+    int see_more(),reply;
+    while(fgets(line, LINELEN, fp)){
+        if (num_of_lines == PAGELEN) {
+            reply = see_more();
+            if (reply ==0) {
+                break;
+            }
+            num_of_lines -= reply;
+        }
+        if (fputs(line, stdout)==EOF) {
+            exit(1);
+        }
+        num_of_lines ++;
+    }
+}
+int see_more(){
+    int c;
+    printf("\033[7m more? \033[m");		/* reverse on a vt100	*/
+	while( (c=getchar()) != EOF )			/* get response	*/
+	{
+		if ( c == 'q' )			/* q -> N		*/
+			return 0;
+		if ( c == ' ' )			/* ' ' => next page	*/
+			return PAGELEN;		/* how many to show	*/
+		if ( c == '\n' )		/* Enter key => 1 line	*/
+			return 1;		
+	}
+	return 0;
 }
