@@ -4,7 +4,7 @@
 #define QUESTION "Do you want another transaction"
 /**
  1、对用户显示提示问题
- 2、接受输入
+ 2、接受输入。
  3、如果是'y'，返回0，
  4、如果是'n'，返回1
  存在的问题，1、用户必须按回车键，play_again0 才能接受到数据。
