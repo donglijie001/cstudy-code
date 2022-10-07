@@ -1,3 +1,5 @@
+[toc]
+
 # 从Paxos到zookeeper
 
 ## 01 分布式架构
@@ -156,4 +158,38 @@ zok使用一个单一的主进程来接收并处理客户端的所有事务请�
 
 ![image-20220923222108142](zookeeperNode.assets/image-20220923222108142.png)
 
-ZAB协议好复杂。
+ZAB协议好复杂，暂时先跳过吧。
+
+## 05 使用zookeeper
+
+### 单机安装
+
+```
+# 下载
+wget https://archive.apache.org/dist/zookeeper/zookeeper-3.5.7/apache-zookeeper-3.5.7-bin.tar.gz
+# 解压
+tar -zxvf apache-zookeeper-3.5.7-bin.tar.gz
+#移动到指定目录
+sudo mv apache-zookeeper-3.5.7-bin /software/zookeeper-3.5.7
+# 修改配置文件名
+cp zoo_sample.cfg zoo.cfg
+# 修改dataDir 的目录，单机版我安装在了mac电脑上，所以改成了下面这样
+dataDir=/Users/donglijie/software/apache-zookeeper-3.5.7/zkData
+#启动服务端
+./bin/zkServer.sh start
+# 查看zk的状态
+./bin/zkServer.sh status
+# 启动客户端
+./bin/zkCli.sh  # 退出的话，输入quit 
+# 停止服务端
+bin/zkServer.sh stop
+```
+
+![image-20221006172606346](zookeeperNode.assets/image-20221006172606346.png)
+
+配置文件里主要有以下一些配置：
+
+- tickTime：心跳时间，单位毫秒，会话超时时间是心跳时间的2倍。
+- dataDir：内存数据库快照的存储位置。
+- clientPort：客户端连接端口
+
