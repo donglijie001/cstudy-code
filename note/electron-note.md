@@ -4,6 +4,12 @@
 
 [electron参考链接](https://www.jianshu.com/p/4dff80a333a8)
 
+# 参考书籍
+
+electron 实战
+
+深入浅出Electron
+
 # 官方教程
 
 ## 安装node
@@ -61,3 +67,26 @@ app.on('window-all-closed', () => {
 但是点击关闭和点击缩小还是不太一样，点击缩小，不仅仅是右下角有一个electron的图案，同时还会有一个那个界面的缩略图。
 
 ![image-20221007163506113](electron-note.assets/image-20221007163506113.png)
+
+# Electron实战笔记
+
+## 开发环境搭建
+
+书上是使用的yarn 来初始化项目啥的。
+
+```
+# windows下可以使用这个命令，mac上不行，mac要使用brerw安装
+npm install -g yarn 
+# macos安装命令
+brew install yarn
+2.升级yarn
+
+brew upgrade yarn
+3.查看版本号
+
+yarn -v
+```
+
+创建一个项目，目录是electron-action，这个命令用起来确实比npm 要好一点。
+
+![image-20221009084736358](electron-note.assets/image-20221009084736358.png)
