@@ -89,4 +89,133 @@ yarn -v
 
 创建一个项目，目录是electron-action，这个命令用起来确实比npm 要好一点。
 
-![image-20221009084736358](electron-note.assets/image-20221009084736358.png)
+![an](electron-note.assets/image-20221009084736358.png)
+
+安装依赖，不用像书上那样指定平台版本啥的。
+
+```
+yarn add electron --dev
+```
+
+添加运行参数
+
+```
+"scripts": {
+    "start": "electron ."
+  },
+```
+
+运行命令：
+
+```
+yarn run start
+```
+
+书上的代码用的还是旧版的监听事件，现在已经不推荐用了，我直接替换了。
+
+### 在index.html中引入js
+
+首先创建一个objRender.js
+
+```
+window.objRender = { key: 'value' }
+```
+
+上面这种方式是直接引入的，书上是用另一种方式，通过require，来导入。
+
+创建objRender2.js
+
+```
+module.exports = {
+    key: 'value'
+}
+```
+
+然后 在index.html中
+
+```
+let ObjRender2 = require('./ObjRender2');
+    alert(ObjRender2.key)
+```
+
+运行代码，第二个并没有弹出，需要进行如下设置：
+
+```
+nodeIntegration: true, contextIsolation: false
+```
+
+因为：[参考链接](https://stackoverflow.com/questions/59523682/nodeintegration-true-ignored)
+
+```
+In Electron 12, contextIsolation will be enabled by default, so require() cannot be used in the renderer process unless nodeIntegration = true and contextIsolation = false.
+```
+
+##  主进程和渲染进程
+
+一个Electron应用只有一个主进程、多个渲染进程。一个BrowserWindow实例就代表着一个渲染进程。
+
+electron 内置的主要模块归属情况
+
+![image-20221009204501412](electron-note.assets/image-20221009204501412.png)
+
+debug main进程
+
+主要就两个点，第一，Node interpreter 选择 node_modules下面的bin/electron，然后 paramsters 选 . 就可以了。
+
+[参考链接](https://blog.jetbrains.com/webstorm/2016/05/getting-started-with-electron-in-webstorm/)
+
+![image-20221009212203541](electron-note.assets/image-20221009212203541.png)
+
+### 渲染进程访问主进程对象
+
+书上使用的是electron 的remote模块。
+
+```
+首先是main.js
+const electron = require('electron');
+const remote = require("@electron/remote/main") //1
+remote.initialize()//2
+const app = electron.app;
+const BrowserWindow = electron.BrowserWindow;
+let win = null;
+const createWindow = () => {
+    win = new BrowserWindow({
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,// 开启remote
+            enableRemoteModule: true
+        }
+    });
+    win.loadFile('index.html');
+    remote.enable(win.webContents); // 3
+    win.on('closed', function () {
+        win = null
+    });
+};
+
+app.whenReady().then(() => {
+    createWindow();
+})
+app.on('window-all-closed', function () {
+    app.quit();
+});
+```
+
+然后是index.html
+
+```
+<script>
+    //const { remote } = require("@electron/remote");
+    const { currentWindow } = require("@electron/remote").getCurrentWindow();
+    console.log(currentWindow)
+
+    document.querySelector("#openDevToolsBtn").addEventListener('click', function() {
+        //currentWindow.webContents.openDevTools();
+        require('@electron/remote').getCurrentWindow().webContents.openDevTools();
+        /*let webContents = remote.getCurrentWebContents();
+        webContents.openDevTools();*/
+    });
+</script>
+```
+
+很奇怪的一点是，我在document 外面导入的remote对象，返回的结果是undefine。很奇怪。
