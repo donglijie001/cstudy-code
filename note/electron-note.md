@@ -168,9 +168,11 @@ debug main进程
 
 ### 渲染进程访问主进程对象
 
-书上使用的是electron 的remote模块。
+书上使用的是electron 的remote模块。[参考链接](https://www.csdn.net/tags/MtjaAg3sMTA0ODctYmxvZwO0O0OO0O0O.html)
 
 ```
+#安装依赖
+npm install --save @electron/remote
 首先是main.js
 const electron = require('electron');
 const remote = require("@electron/remote/main") //1
@@ -218,4 +220,154 @@ app.on('window-all-closed', function () {
 </script>
 ```
 
-很奇怪的一点是，我在document 外面导入的remote对象，返回的结果是undefine。很奇怪。
+很奇怪的一点是，我在document 外面导入的remote对象，返回的结果是undefine。很奇怪。找到原因了，是因为我使用的const { currentWindow } ，这种方式不对，这种方式是对象解构赋值，remote里没有currentWindow 这个属性，所以一直返回的是空。
+
+### 渲染进程访问主进程类型
+
+这个是在render中创建一个新的窗体。这个实际上还是调用的主进程的方法，主进程创建了BrowserWindow后把对象返回给render。
+
+```
+let remote = require('@electron/remote');
+    let win = null;
+    document.querySelector("#makeNewWindow").addEventListener('click', function() {
+        win = new remote.BrowserWindow({
+            webPreferences: { nodeIntegration: true }
+        });
+        win.loadFile('index.html');
+    })
+```
+
+### 渲染进程访问主进程自定义内容
+
+创建mainModel.js
+
+```
+let { BrowserWindow } = require('electron')
+exports.makeWin = function() {
+    let win = new BrowserWindow({
+        webPreferences: { nodeIntegration: true }
+    });
+    return win;
+}
+```
+
+在index.html，添加：
+
+```
+let mainModel = remote.require('./mainModel');
+    let win2 = null;
+    document.querySelector("#makeNewWindow2").addEventListener('click', () => {
+        win2 = mainModel.makeWin();
+        win2.loadFile('index.html');
+    });
+```
+
+## 进程间消息传递
+
+### 渲染进程向主进程发送消息
+
+ipcRenderer.send方法的第一个参数是消息管道的名称，主进程会根据该名称接收消息；后面两个对象是随消息传递的数据。该方法可以传递任意多个数据对象。下面这个是异步传递消息。ipcRenderer.send方法的第一个参数是消息管道的名称，主进程会根据该名称接收消息；后面两个对象是随消息传递的数据。该方法可以传递任意多个数据对象。
+
+```
+let { ipcRenderer } = require('electron');
+    document.querySelector("#sendMsg1").addEventListener('click', () => {
+        ipcRenderer.send('msg_render2main', { name: 'param1' }, { name: 'param2' });
+    });
+    
+# 主进程
+let { ipcMain } = require('electron')
+ipcMain.on('msg_render2main', (event, param1, param2) => {
+    console.log(param1);
+    console.log(param2);
+    console.log(event.sender);
+});
+```
+
+### 主进程向渲染进程发送消息
+
+在主线程里加入如下代码
+
+```
+ipcMain.on('msg_render2main', (event, param1, param2) => {
+    win.webContents.send('msg_main2render', param1, param2)
+});
+```
+
+上面的这种方式，只能是win 这个窗体对应的渲染进程能接收到消息。
+
+在render线程里加入如下代码
+
+```
+ipcRenderer.on('msg_main2render',(event, param1, param2)=>{
+        console.log(param1);
+        console.log(param2);
+    })
+```
+
+## 引入现代前端框架
+
+## 引入webpack
+
+```
+ mkdir electron-webpack
+ cd electron-webpack
+ yarn init
+ yarn add electron --dev
+ yarn add webpack@4.5.0 --dev
+ yarn add electron-webpack --dev
+```
+
+按照书上，webpack会自动生成一个index.html 文件，但是我在开发模式下运行的时候，并没有生成。是我自己的问题，我没有把loadFile给改成loadUrl(这个花了我几个小时，真无语)。
+
+自定义入口页面
+
+```
+,
+"electronWebpack": {
+  "renderer": {
+    "template": "src/renderer/index.html"
+  }
+}
+```
+
+### 引入vue
+
+```
+# 安装vue-cli
+yarn global add @vue/cli
+# 创建项目
+vue create chapter3_4   
+# 安装electron-builder
+vue add electron-builder
+# 编译命令
+yarn electron:serve
+
+```
+
+生成的项目里，src/background.js 是主进程入口程序，src/main.js是渲染进程入口程序
+
+## 窗口
+
+### 窗口标题栏和边框
+
+禁用默认的窗口标题栏
+
+![image-20221017134827116](electron-note.assets/image-20221017134827116.png)
+
+但是在mac系统上我看不出来效果。
+
+窗口的控制按钮
+
+在这里需要使用remote模块，参考前面的步骤，引入remote。但是这个时候项目编译是报错的，提示：Module not found: Error: Can't resolve 'fs' in '/Users/donglijie/Desktop/selfLearning/electron/chapter3_4/node_modules/electron'，这个错误是因为系统默认不支持node，需要把node给集成进来，修改vue.config.js,[参考链接](https://blog.csdn.net/feinifi/article/details/126898900)
+
+```
+module.exports = defineConfig({
+  transpileDependencies: true,
+  pluginOptions:{
+    electronBuilder:{
+      nodeIntegration:true
+    }
+  }
+})
+```
+
