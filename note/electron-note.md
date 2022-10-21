@@ -371,3 +371,12 @@ module.exports = defineConfig({
 })
 ```
 
+## 页面
+
+### 页面内容
+
+页面主要由webContents进行渲染。
+
+#### 页面加载事件及触发顺序
+
+![image-20221019140224241](electron-note.assets/image-20221019140224241.png)
