@@ -380,3 +380,13 @@ module.exports = defineConfig({
 #### 页面加载事件及触发顺序
 
 ![image-20221019140224241](electron-note.assets/image-20221019140224241.png)
+
+# 使用vue3
+
+```
+npm init vue@latest # 创建vue项目
+npm install electron -D # 安装electron
+yarn add electron-builder --dev # 安装electron-builder
+npm install vite-plugin-electron -D
+```
+
