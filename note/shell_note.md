@@ -119,3 +119,17 @@ expect "*password*" {send "$password\r"}
 interact
 ```
 [参考链接](https://cloud.tencent.com/developer/article/1691063?from=article.detail.1702986)
+
+# sed笔记
+
+[参考链接](http://qinghua.github.io/sed/) [参考链接2](https://www.cnblogs.com/ggjucheng/archive/2013/01/13/2856901.html#3495425)
+
+我需要给每一行末尾都添加一个逗号
+
+```
+# -i 是直接修改原文件，s/$/,/ 中，s表示是替换，$表示是末尾， ，表示是新加的数据，
+sed -i 's/$/,/' tmp2.txt
+# 也可以把修改后的内容保存到一个新的文件
+sed  's/$/,/' tmp2.txt > tmp3.txt
+```
+
