@@ -28,5 +28,10 @@ int main(int argc, char *argv[]){
     for(cur_name = names,cur_age = ages; (cur_age -ages)< count; cur_age++, cur_name++){
         printf("%s lived %d years so far.\n", *cur_name, *cur_age);
     }
+    int a =10;
+    printf("a is %d", a);
+    int * ptr = &a;
+    *ptr = *ptr +1;
+    printf("a is %d", a);
     return 0;
 }

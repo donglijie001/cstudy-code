@@ -29,5 +29,7 @@ test:test.c
 	cc -g -Wall test.c -o test
 ex18:ex18.c
 	cc -g -Wall ex18.c -o ex18
+ex17_1:ex17_1.c
+	cc -g -Wall ex17_1.c -o ex17_1
 clean:
-	rm -f ex5 ex6 ex7 ex8 ex9 ex10 ex11 ex12 ex13 ex14 ex15 ex16 ex17 test ex18
+	rm -f ex5 ex6 ex7 ex8 ex9 ex10 ex11 ex12 ex13 ex14 ex15 ex16 ex17 test ex18 ex17_1
