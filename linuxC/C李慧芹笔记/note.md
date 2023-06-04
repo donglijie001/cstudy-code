@@ -458,7 +458,7 @@ int main(void){
 
 ## 5.1一维数组
 
-定义：[存储类型] 数据类型 标识符
+定义：[存储类型] 数据类型 标识符x
 
 初始化： 使用static 声明数组，默认初始化为0
 
@@ -801,11 +801,659 @@ int main(){
 
 ​	指针与二维数组
 
+![image-20230524085436743](note.assets/image-20230524085436743.png)
+
+比如上面这张图，a[m] [n]是一个二维数组，a指向数组的首地址，a + i 就是一个行指针的移动，或者把a看作是一个一维的长度为n的数组，只不过a里面的元素又是一个一维数组，所以a + i就是相当于一个指针变量指向了第i行元素的首地址，*（a + i）就是获取第i行首元素的地址， *（a + i） + j 就是获取第i行第j列的地址，然后 *（ *（a + i） + j） 就是获取第i行第j列的值。所以a是一个指针常量，但是同时也是一个指向指针的指针。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+int main(){
+    int a[2][3] = {1,2,3,4,5,6};
+    int i,j;
+    //以下是二维数组的输出
+    #if 0
+    for (i=0; i< 2;  i ++) {
+         for (j=0; j<3 ;j++) {
+            printf("%d ",a[i][j]);
+         }
+         printf("\n");
+    }
+    #endif
+    /* a 是行指针，a + 1 是跳过一行,下面是验证代码，并且声明一个指针让 
+    它指向数组首元素的地址，有两种方式 p = *(a+i) + j;或 p = &a[i][j]
+    特别的是数组首元素的地址：p = *a; p = &a[0][0]，这里p指针是当作一个列指针。
+    */
+    int *p;
+    p = *a;// p = &a[0][0]
+    printf("%p %p\n",a, a + 1);
+    printf("%p %p\n",p, &a[0][0]);
+
+    for (i=0; i< 2;  i ++) {
+         for (j=0; j<3 ;j++) {
+            printf("%p -> %d\n",&a[i][j],a[i][j]);
+         }
+         printf("\n");
+    }
+
+    int  (*q)[3]= a;
+    exit(0);
+}
+```
+
 ​	指针与字符数组
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+int main(){
+    char *str = "helloll";
+    printf("%u %u\n", sizeof(str), strlen(str));
+ //   strcpy(str,"world");  str指向了一个串常量，所以在拷贝的时候会出错。
+    str = "worldll";
+    puts(str);
+    #if 0
+    char str[] = "hello";
+    // 下面这行代码有问题，数组名是一个常量是不能在除初始化的情况下进行赋值
+   // str = "world"; 
+   // sizeof 包含尾0， strlen不包含尾0，遇到尾0就终止，即使尾0在字符中间
+    printf("%u %u\n", sizeof(str), strlen(str));
+   strcpy(str,"world");
+   puts(str);
+   #endif
+    exit(0);
+}
+```
 
 9、const与指针
 
+```
+#include <stdio.h>
+#include <stdlib.h>
+/**
+ * const int a;
+ * int const a;
+ * const int *p;
+ * int const  *p;
+ * int * const p;
+ * const int * const p
+ */
+ #define PI 3.14
+ // 2 * PI * r
+ int main(){
+    const float  pi = 3.14;
+    // fi = 3.14159 这样赋值有问题
+    float *p = &pi;
+    *p = 3.14159;
+    printf("%f\n", pi);
+    exit(0);
+ }
+```
+
+const 定义的常量无法进行修改，但是可以通过定义一个指针，间接对这个常量进行赋值。
+
+![image-20230601083323003](note.assets/image-20230601083323003.png)
+
+常量指针
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+/**
+ * const int a;
+ * int const a;
+ * const int *p; // 常量指针 ，指针指向的地址可以变化，但是指针指向的地址的值不可以变
+   const 在星号前面，把*p看成一个值，const 一个值，就表示这个值不可以发生变化，
+ * int const  *p; // 常量指针
+ * int * const p; // 指针常量 指针指向的地址不能变，但是指针指向的地址的值可以变
+ * const int * const p
+ */
+ #define PI 3.14
+ // 2 * PI * r
+ int main(){
+    int i =1;
+    int j=100;
+    const int *p =&i;
+    // i =10; 可以赋值
+    //*p =10; 有问题
+    p = &j; // 这样是没有问题的
+    printf("%d\n", *p);
+    exit(0);
+ }
+```
+
+指针常量
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+/**
+ * const int a;
+ * int const a;
+ * const int *p; // 常量指针 ，指针指向的地址可以变化，但是指针指向的地址的值不可以变
+   const 在星号前面，把*p看成一个值，const 一个值，就表示这个值不可以发生变化，
+ * int const  *p; // 常量指针
+ * int * const p; // 指针常量 指针指向的地址不能变，但是指针指向的地址的值可以变
+ * const int * const p 指向的地址和指向的地址的值都不可以发生变化
+ */
+ #define PI 3.14
+ // 2 * PI * r
+ int main(){
+    int i =1;
+    int j=100;
+    int * const p =&i;
+   //  p = &j; 这样是有问题的
+   *p =2;
+    printf("%d\n", *p);
+    exit(0);
+ }
+```
+
 10、指针数组和数组指针
 
+​	数组指针： [存储类型] 数据类型 (* 指针名) [下标] = 值
+
+​		如 int (*p)[3] =a// 这里a是一个二维数组，列的长度是3, 这里进行抽象的话，typename 就是 int[3] ,实际上，要是把[3] 放到int后面就好了， 这样定义的话，对a进行操作在行之间进行移动，完全可以用p来代替。
+
+​	指针数组：[存储类型] 数据类型 * 数组名[长度]
+
+​		如 int * arr[3];=》 TYPE NAME;=> int *[3] arr；
+
+字符指针和字符数组的区别：
+
+​	字符指针： char *s = "helloll";
+
+​	字符数组：char[] str = "helloll";
+
+​	1、字符指针指向的字符窜，在C语言内部被当作常量，不能对字符串本身进行修改。
+
+​	2、字符指针可以指向另一个字符串，但是字符数组不可以（这是因为字符数组名被当作是一个常量。）
+
+比如下面这段代码：
+
+```
+// str 是字符指针，所以在使用strcpy函数的时候会报错，但是可以让它指向另一个字符串常量。
+char *str = "helloll";
+    printf("%u %u\n", sizeof(str), strlen(str));
+ //   strcpy(str,"world");  str指向了一个串常量，所以在拷贝的时候会出错。
+    str = "worldll";
+    puts(str);
+```
+
 11、多级指针
+
+# 7 函数
+
+## 1、函数的定义
+
+​	数据类型 函数名(数据类型 形参名)
+
+## 2、函数的传参
+
+​	值传递
+
+​	地址传递
+
+​	引用变量
+
+## 3、函数的调用
+
+​	嵌套调用
+
+​	递归s
+
+## 4、函数与数组
+
+### 	函数与一维数组
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+void print_arr(int *p){
+
+    int i;
+    printf("%s:%d\n",__FUNCTION__,sizeof(p));
+    /*
+    for( i=0; i< sizeof(a)/sizeof(*a); i++){
+        printf("%d ",a[i]);
+    }
+    printf("\n");*/
+}
+int main(){
+    int a[] ={1,3,5,7,9};
+    printf("%s:%d\n",__FUNCTION__,sizeof(a));
+    print_arr(a);
+    exit(0);
+}
+```
+
+输出结果：
+
+```
+main:20
+print_arr:4
+```
+
+从上面可以看出来，在main函数里输出的是整个数组所占的字节长度，在把一维数组的首地址传递过去的时候，使用sizeof输出的是数组首元素所占的字节长度。
+
+想要输出一维数组里的所有元素，可以使用下面的代码，把数组的长度传递进去。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+void print_arr(int *p, int n){
+
+    int i;
+    printf("%s:%d\n",__FUNCTION__,sizeof(p));
+    
+    for( i=0; i< n; i++){
+        printf("%d ",*(p + i));
+    }
+    printf("\n");
+}
+int main(){
+    int a[] ={1,3,5,7,9};
+    printf("%s:%d\n",__FUNCTION__,sizeof(a));
+    print_arr(a, sizeof(a)/sizeof(*a));
+    exit(0);
+}
+```
+
+print_arr()中的形参是数组，传递参数是可以是int * p，也可以是 int p[]，而且我在[菜鸟教程](https://www.runoob.com/cprogramming/c-passing-arrays-to-functions.html)上面还看到一维数组在传递的时候还可以带上数组的长度。这里int *p 和int p[] 是等价的，所以在有的函数里可以看到 char **argv 和char *argv。 
+
+我还试了，在函数定义的时候把数组长度给设置上去。但是执行结果还是打印出来的是数组首元素所占字节的长度，也就是说无论带不带长度，c 语言都只会把传递进来数组参数，看作是数组的第一个元素。
+
+```
+void print_arr2(int a[5]){
+    printf("%s %d", __FUNCTION__, sizeof(a));
+}
+```
+
+### 	函数与二维数组
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#define  M 3
+#define  N 4
+void print_arr(int *p, int n){
+    int j;
+    for (j=0; j<n; j++) {
+            printf("%d ", p[j]);
+    }
+    printf("\n");
+}
+int main(){
+    int i,j;
+    int a[M][N] = {1,2,3,4,5,6,7,8,9,10,11,12};
+    print_arr(&a[0][0], M*N);
+}
+```
+
+这是第一种方式，把二维数组当作一个普通的一维数组。
+
+运行结果：
+
+```
+donglijie@ubuntu:func$ ./arr2
+1 2 3 4 5 6 7 8 9 10 11 12 
+```
+
+
+
+```
+*a <=>a[0]<=>*(a+0)<=>&a[0][0]  都是一个列指针
+a+ i 就是一个行指针。
+```
+
+
+
+另外一种方式：
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#define  M 3
+#define  N 4
+void print_arr(int *p, int n){
+    printf("%s sizeof(p) = %d\n",__FUNCTION__, sizeof(p));
+    int j;
+    for (j=0; j<n; j++) {
+            printf("%d ", p[j]);
+    }
+    printf("\n");
+}
+void print_arr1(int (*p)[N],int m, int n){
+    int i,j;
+    printf("%s sizeof(p) = %d\n",__FUNCTION__, sizeof(p));
+
+    for (i=0; i<m; i++) {
+        for (j =0; j<n; j++) {
+            printf("%4d  ", *(*(p +i) +j));
+        }
+        printf("\n");
+    }
+
+}
+int main(){
+    int i,j;
+    int a[M][N] = {1,2,3,4,5,6,7,8,9,10,11,12};
+    printf("%s sizeof(a) = %d\n",__FUNCTION__, sizeof(a));
+    print_arr(&a[0][0], M*N);
+    print_arr1(a, M, N);
+    #if 0
+    print_arr(*a, M*N);
+    print_arr(*(a+0), M*N);
+    print_arr(a[0], M*N);
+    #endif
+
+    /*
+    
+    printf("a=>%p\n", a);
+    printf("a[0]=>%p\n", *a);
+    printf("*a +1=>%p\n", *a +1);
+    printf("a[0]+1=>%p\n", a[0]+1);
+    printf("*a=>%p\n", *a);
+    printf("a[0][0] =>%p\n", &a[0][0]);
+    printf("a+1 => %p \n", a+1);
+    printf("*(a+1) => %p\n", *(a+1));*/
+
+    exit(0);
+}
+
+
+```
+
+运行结果：
+
+```
+main sizeof(a) = 48
+print_arr sizeof(p) = 4
+1 2 3 4 5 6 7 8 9 10 11 12 
+print_arr1 sizeof(p) = 4
+   1     2     3     4  
+   5     6     7     8  
+   9    10    11    12  
+```
+
+从上面的运行结果可以看出来，a一共12个元素，int字节长度是4，所以main函数里sizeof(a) 是48， 而print_arr 和print_arr1两个函数，传递的都是地址，它的长度都是4。只不过print_arr是把数组当作一维数组来处理，传递的可以认为是列指针，而print_arr1传递的是一个行指针。
+
+具体把再函数里传递二维数组可以参考：[参考链接](https://blog.csdn.net/wokaowokaowokao12345/article/details/52999502)
+
+二维数组的实参和形参的对应关系如下：
+
+![image-20230603201907679](note.assets/image-20230603201907679.png)
+
+## 5、函数与指针
+
+指针函数
+
+​	返回值是一个指针
+
+​		返回值 * 函数名(形参)
+
+​		int * func(int)
+
+函数指针
+
+​	类型 (*指针名)(形参)
+
+​	如 int (*p)(int); // 指针指向了函数
+
+​	函数名是一段代码所关联的入口地址，所以可以定义一个同样类形的指针来代替函数。
+
+函数指针数组
+
+​	类型 （*数组名[下标]）(形参)
+
+​	如: int (* arr[N])(int)
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+int add(int a,int b){
+    return a +b;
+}
+int main(){
+    int a=3,b=5;
+    int ret;
+    // 定义一个函数指针
+    int (*p)(int,int); 
+    //ret =add(a,b);
+    p = add;
+    ret =p(a,b);
+    int (* funcp[1])(int ,int);
+    funcp[0] = add;
+    ret = funcp[0](a,b);
+    printf("%d\n", ret);
+
+    exit(0);
+}
+```
+
+# 八 构造类型
+
+结构体
+
+## 1、产生及意义
+
+## 2、类型描述
+
+```
+struct 结构体名{
+
+	数据类型 成员1；
+	数据类型 成员2；
+	......
+}
+```
+
+## 3、嵌套定义
+
+## 4、定义变量（变量，数组，指针），初始化及成员引用
+
+​	成员引用：变量名.成员名
+
+​			指针-> 成员名
+
+## 5、占用内存空间大小
+
+### 内存对齐
+
+先定义一个这样的结构体：
+
+```
+struct simp_st{
+    int i;
+    char ch;
+    float f;
+    
+};
+```
+
+输出这样两条语句
+
+```
+printf("sizeof(point) = %d\n", sizeof(p));
+printf("sizeof(struct) = %d\n", sizeof(a));
+```
+
+执行结果：
+
+```
+sizeof(point) = 4
+sizeof(struct) = 12
+```
+
+第一条语句输出指针变量所占字节大小，由于我的运行环境是32位机器，所以输出的结果是4。
+
+第二条语句是输出结构体的大小，int float都是4字节，而char是1字节，具体原因稍后解释。
+
+在结构体里面加一个字段
+
+```
+struct simp_st{
+    int i;
+    char ch1;
+    char ch;
+    float f;
+    
+};
+```
+
+执行结果没变
+
+```
+sizeof(point) = 4
+sizeof(struct) = 12
+```
+
+然后调整一下位置就可以发现，结果发生变化
+
+```
+struct simp_st{
+    int i;
+    char ch;
+    float f;
+    char ch1;
+};
+```
+
+运行结果：
+
+```
+sizeof(point) = 4
+sizeof(struct) = 16
+```
+
+出现这个现象的原因就是因为内存对齐。
+
+![image-20230604155600874](note.assets/image-20230604155600874.png)
+
+比如这样一个结构体：
+
+```
+struct simp_st{
+    int i;
+    char ch2;
+    char ch;
+    char ch3;
+    char * b;
+};
+```
+
+输出结果，这个结果是在64位的机器上输出的。
+
+```
+sizeof(point) = 8
+sizeof(struct) = 16
+```
+
+char * b; 是8个字节，int 是4个字节char是1个字节，所以从上到下，是4，1，1，1，8前面四个加起来是7个字节，后面那个是8个字节，所以在7个字节后面加一个填充，就变成了16个字节。比如下面这样，我再加一个char ch4,
+
+```
+struct simp_st{
+    int i;
+    char ch2;
+    char ch;
+    char ch3;
+    char ch4;
+    char * b;
+};
+```
+
+输出结果还是16个字节。
+
+```
+sizeof(point) = 8
+sizeof(struct) = 16
+```
+
+然后我再加一个char ch5，结果就发生了变化了。
+
+```
+struct simp_st{
+    int i;
+    char ch2;
+    char ch;
+    char ch3;
+    char ch4;
+    char ch5;
+    char * b;
+};
+```
+
+```
+sizeof(point) = 8
+sizeof(struct) = 24
+```
+
+然后我再加一个char ch6
+
+```
+struct simp_st{
+    int i;
+    char ch2;
+    char ch;
+    char ch3;
+    char ch4;
+    char ch5;
+    char ch6;
+    char * b;
+};
+```
+
+运行结果
+
+```
+sizeof(point) = 8
+sizeof(struct) = 24
+```
+
+**在网络传输的过程中是要禁止对齐的。**
+
+### 函数传参
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#define NAMESIZE 32
+
+struct simp_st{
+    int i;
+    char ch;
+    float f;
+};
+
+struct birthday_st{
+    int year;
+    int month;
+    int day;
+};
+struct student_st{
+    int id;
+    char name[NAMESIZE];
+    struct birthday_st birth;
+    int math;
+    int chinese;
+
+};
+void func(struct simp_st b){
+    printf("%d \n", sizeof(b));
+}
+int main(){
+    struct simp_st a;
+    struct simp_st *p = &a;
+    func(a);
+    exit(0);
+}
+```
+
+上面定义了一个函数，func，形参是一个struct变量。func输出形参所占的空间为12，相当于是把结构体a给完全拷贝了一份。
+
+```
+12 
+sizeof(struct) = 12
+```
 
