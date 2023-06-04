@@ -1234,11 +1234,11 @@ int main(){
 
 # 八 构造类型
 
-结构体
+## 结构体
 
-## 1、产生及意义
+### 1、产生及意义
 
-## 2、类型描述
+### 2、类型描述
 
 ```
 struct 结构体名{
@@ -1249,15 +1249,15 @@ struct 结构体名{
 }
 ```
 
-## 3、嵌套定义
+### 3、嵌套定义
 
-## 4、定义变量（变量，数组，指针），初始化及成员引用
+### 4、定义变量（变量，数组，指针），初始化及成员引用
 
 ​	成员引用：变量名.成员名
 
 ​			指针-> 成员名
 
-## 5、占用内存空间大小
+### 5、占用内存空间大小
 
 ### 内存对齐
 
@@ -1455,5 +1455,124 @@ int main(){
 ```
 12 
 sizeof(struct) = 12
+```
+
+### 练习：微型学生管理系统
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define NAMESIZE 32
+struct student_st{
+    int id;
+    char name[NAMESIZE];
+    int math;
+    int chinese;
+};
+void stu_set(struct student_st *p){
+    p ->id = 10011;
+    strncpy(p->name, "Alan", NAMESIZE);
+    p->math =90;
+    p->chinese =98;
+
+}
+void stu_show(struct student_st *p){
+    printf("%d %s %d %d\n", p->id,p->name,p->math,p->chinese);
+}
+int main(){
+    struct student_st stu;
+    stu_set(&stu);
+    stu_show(&stu);
+   // stu_changename();
+    exit(0);
+}
+```
+
+### 共用体
+
+### 1、产生及意义
+
+### 2、类型描述
+
+```
+union 共用体名{
+	数据类型 成员名1;
+	数据类型 成员名2;
+}
+```
+
+共用体中的多个变量一起共用一个空间，同一时间只有一个成员变量是有效的。
+
+### 3、嵌套定义
+
+```
+struct {
+    int i;
+    char ch;
+    union {
+        int a;
+        char c;
+
+    }un;
+    float f;
+};
+```
+
+
+
+### 4、定义变量（变量、数组、指针）初始化及成员引用
+
+​	成员引用： 变量名.成员名
+
+​			  指针名->成员名
+
+小练习：对一个32位的十六进制数相加。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+union test_un{
+    struct{
+        uint16_t i;
+        uint16_t j;
+    }x;
+    uint32_t y;
+}a;
+int main(){
+    a.y = 0x11223344;
+    printf("%x\n", a.x.i+ a.x.j);
+    exit(0);
+}
+```
+
+运行结果：
+
+```
+4466
+```
+
+这里使用了共用体，虽然在赋值的时候把十六进制数0x11223344给赋值给了y，但是我们依旧可以通过结构体x来访问。
+
+### 5、占用内存大小
+
+内存以最大的元素为主。
+
+### 6、函数传参（值、地址）
+
+### 7、位域
+
+## 枚举
+
+### 定义：
+
+```
+enum 标识符{
+	成员1,
+	成员2；
+	.....
+}
 ```
 
