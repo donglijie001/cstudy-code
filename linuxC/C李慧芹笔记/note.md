@@ -8,7 +8,7 @@
 rsync -av /Users/donglijie/Desktop/selfLearning/cstudy-code donglijie@192.100.219.110:/home/donglijie
 ```
 
-
+[代码参考链接](https://github.com/impact-eintr/LinuxC)
 
 # 1 学习方法和基本概念简单介绍
 
@@ -1576,3 +1576,286 @@ enum 标识符{
 }
 ```
 
+# 九动态内存管理
+
+## malloc calloc realloc free 
+
+原则：谁申请谁释放
+
+下面这段代码的问题，就是p申请的内存并没有真正的释放。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+void func(int *p, int n){
+    p = malloc(n);
+    if(p == NULL){
+        exit(1);
+    }
+    return;
+}
+int main(){
+
+    int num =100;
+    int *p = NULL;
+    func(p,num);
+    free(p);
+    exit(0);
+ }
+```
+
+改进方法1：使用二级指针
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+void func(int **p, int n){
+    p = malloc(n);
+    if(p == NULL){
+        exit(1);
+    }
+    return;
+}
+int main(){
+
+    int num =100;
+    int *p = NULL;
+    func(&p,num);
+    free(p);
+    exit(0);
+ }
+```
+
+改进方法二： 增加返回值
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+void * func(int *p, int n){
+    p = malloc(n);
+    if(p == NULL){
+        exit(1);
+    }
+    return p;
+}
+int main(){
+
+    int num =100;
+    int *p = NULL;
+    p = func(p,num);
+    free(p);
+    exit(0);
+ }
+```
+
+## typedef
+
+作用 为已有的数据类型改名
+
+语法：typedef 已有的数据类型 新名字
+
+
+
+```
+#define INT int
+typedef int INT
+INT i; -> int i; //上面两种方式是没有区别的
+
+#define IP int *
+typedef int *IP
+IP p,q; -> int *p,q;
+IP p,q; ->int *p,*q;
+
+typedef int ARR[6]; --> int[6] 起一个别名ARR
+ARR a; --> int a[6]
+
+struc node_st{
+	int i;
+	float f;
+}
+typedef struct node_st NODE;
+NODE a; -> struct node_st a;
+typedef struct node_st *NODEP; // 不推荐这样用，因为定义变量的时候，看不出来对应的变量是不是指针变量
+NODEP p; --> struct node_st *p
+
+typedef struc {
+	int i;
+	float f;
+}NODE,*NODEP;    // 这样和上面是等价的
+
+typedef int FUNC(int); // 给int(int)  起了一个别名FUNC
+FUNC f; --> int f(int);
+typedef int * FUNCP(int); // 给 int* (int) 起了一个别名 FUNCP
+FUNCP p;-->int *p(int)
+
+typedef int* (*FUNCP)(int);
+FUNCP p;-->int* (*p)(int) // 定义了一个函数指针，该函数返回值是int*，形参是int。
+```
+
+# 十 Makefile工程文件的编写规则
+
+文件名叫makefile 或者Makefile都可以。[参考链接](https://seisman.github.io/how-to-write-makefile/)
+
+练习小demo
+
+首先定义main.c tool1.c tool1.h tool2.c tool2.h
+
+tool1.c
+
+```
+#include <stdio.h>
+#include "tool1.h"
+void mytool1(void){
+    printf("tool1 print\n");
+}
+```
+
+tool2.c
+
+```
+#include <stdio.h>
+#include "tool2.h"
+void mytool2(void){
+    printf("tool2 print\n");
+}
+```
+
+tool1.h
+
+```
+#ifndef TOOL1_H
+#define TOOL1_H
+void mytool1(void);
+#endif
+```
+
+tool2.h
+
+```
+#ifndef TOOL2_H
+#define TOOL2_H
+void mytool2(void);
+#endif
+```
+
+main.c
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include "tool2.h"
+#include "tool1.h"
+int main(void){
+    mytool1();
+    mytool2();
+    return 0;
+}
+```
+
+makefile
+
+需要注意的一点是，编辑main.o too1.o too2.o 这些目标文件时，都加上了-c选项，表示只生成目标文件（只进行编译，不生成链接生成可执行文件）。
+
+```
+mytool:main.o tool1.o tool2.o
+	gcc main.o tool1.o tool2.o -o mytool
+main.o:main.c
+	gcc main.c	-c -Wall -g -o main.o	
+tool1.o:tool1.c
+	gcc tool1.c	-c -Wall -g -o tool1.o
+tool2.o:tool2.c
+	gcc tool2.c	-c -Wall -g -o tool2.o	
+```
+
+然后执行make 命令就可以了，然后输入./mytool 执行
+
+在makefile末尾增加删除中间文件的代码
+
+```
+mytool:main.o tool1.o tool2.o
+	gcc main.o tool1.o tool2.o -o mytool
+main.o:main.c
+	gcc main.c	-c -Wall -g -o main.o	
+tool1.o:tool1.c
+	gcc tool1.c	-c -Wall -g -o tool1.o
+tool2.o:tool2.c
+	gcc tool2.c	-c -Wall -g -o tool2.o	
+clean:
+	rm *.o mytool -rf
+```
+
+执行删除：make clean
+
+第二个版本的makefile
+
+```
+OBJS= main.o tool1.o tool2.o
+cc=gcc
+mytool:$(OBJS)
+	$(cc) $(OBJS) -o mytool
+main.o:main.c
+	$(cc) main.c	-c -Wall -g -o main.o	
+tool1.o:tool1.c
+	$(cc) tool1.c	-c -Wall -g -o tool1.o
+tool2.o:tool2.c
+	$(cc) tool2.c	-c -Wall -g -o tool2.o	
+clean:
+	$(RM) *.o mytool -r
+```
+
+在第二个版本里定义了一个变量OBJS， 然后在下面的编译命令里面就可以使用了，同时还使用了cc来代替gcc，cc也是定义的一个变量。$(RM) 等价于rm -f 
+
+第三个版本的makefile
+
+```
+OBJS= main.o tool1.o tool2.o
+cc=gcc
+CFLAGS+=-c -Wall -g
+mytool:$(OBJS)
+	$(cc) $(OBJS) -o mytool
+main.o:main.c
+	$(cc) main.c	$(CFLAGS) -o main.o	
+tool1.o:tool1.c
+	$(cc) tool1.c	$(CFLAGS) -o tool1.o
+tool2.o:tool2.c
+	$(cc) tool2.c	$(CFLAGS) -o tool2.o	
+clean:
+	rm *.o mytool -rf
+```
+
+增加了一个CFLAGS变量用来增加编译选项，并且CFLAGS变量不能在右边加空格会有问题。
+
+第四个版本的makefile
+
+```
+OBJS= main.o tool1.o tool2.o
+cc=gcc
+CFLAGS+=-c -Wall -g
+mytool:$(OBJS)
+	$(cc) $^ -o $@
+main.o:main.c
+	$(cc) $^	$(CFLAGS) -o $@
+tool1.o:tool1.c
+	$(cc) $^	$(CFLAGS) -o $@
+tool2.o:tool2.c
+	$(cc) $^	$(CFLAGS) -o $@
+clean:
+	rm *.o mytool -rf
+```
+
+用`$^` 代替上一个命令依赖的文件，比如下面这个，用$^ 代替依赖的$(OBJS)，同时也用$@来代替要生成的目标名。
+
+```
+mytool:$(OBJS)
+	$(cc) $^ -o $@
+```
+
+# 数据结构
+
+## 线性表
+
+分为顺序存取的线性表（数组）和链式存储的线性表（单向链表和双向链表）
+
+顺序存储的线性表：
+
+视频：线性表第三集
