@@ -1856,6 +1856,10 @@ mytool:$(OBJS)
 
 分为顺序存取的线性表（数组）和链式存储的线性表（单向链表和双向链表）
 
-顺序存储的线性表：
+约瑟夫环：[参考链接](https://blog.csdn.net/qq_44625774/article/details/105518197) [参考链接2](https://bbs.huaweicloud.com/blogs/272825)
 
-视频：线性表第三集
+# 用过的c语言知识
+
+**snprintf**
+
+作用：[格式化输出字符串，将结果写入到指定的缓冲区](https://www.runoob.com/cprogramming/c-function-snprintf.html)
