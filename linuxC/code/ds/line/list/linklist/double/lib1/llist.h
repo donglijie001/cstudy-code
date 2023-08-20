@@ -13,14 +13,22 @@ typedef  struct{
     struct llist_node_st head;
 
 } LLIST;
+//typedef void (*llist_op)(const void *);
+
+// 这是自定义了一个函数，上面那个才是函数指针
+typedef void  llist_op1 (const void *);
+
+typedef int  llist_cmp(const void *,  const void *);
 
 LLIST *llist_create(int initsize);
 
 int  llist_insert(LLIST *,const void * data, int mode);
-//llist_find();
-//llist_delete();
-//llist_fetch();
-void llist_travel(LLIST *);
+void * llist_find(LLIST *, const void * key, llist_cmp *);
+int  llist_delete(LLIST *, const void * key, llist_cmp *);
+int  llist_fetch(LLIST *, const void * key, llist_cmp *, void * data);
+void llist_travel(LLIST *, void (*llist_op)(const void *));
+void llist_travel1(LLIST *, llist_op1 *);
+
 void llist_destory(LLIST *);
 
 

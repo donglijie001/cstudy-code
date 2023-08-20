@@ -1858,8 +1858,98 @@ mytool:$(OBJS)
 
 约瑟夫环：[参考链接](https://blog.csdn.net/qq_44625774/article/details/105518197) [参考链接2](https://bbs.huaweicloud.com/blogs/272825)
 
+### 双向循环链表
+
+双向循环链表的节点定义：
+
+```
+struct llist_node_st{
+    void * data;
+    struct llist_node_st *prev;
+    struct llist_node_st *next;
+};
+typedef  struct{
+    int size;
+    struct llist_node_st head;
+
+} LLIST;
+```
+
+上面这种定义，有一个问题就是在llist_node_st结构体中定义了一个指针data，用来指向要添加的数据，而且data这个指针，也占四个字节
+
 # 用过的c语言知识
 
 **snprintf**
 
 作用：[格式化输出字符串，将结果写入到指定的缓冲区](https://www.runoob.com/cprogramming/c-function-snprintf.html)
+
+sizeof
+
+这个函数主要是用来计算，输入的变量的size，让我疑惑的是，比如我定义了一个struct，然后我想要计算这个struct的大小，首先我定义了一个指针变量`struct llist_node_st  *newnode;`,然后我使用sizeof的时候，`sizeof(newnode)`,这样得到的size并不是struct llist_node_st的size，而是newnode 这个指针的大小，应该使用`sizeof(*newnode)`，我的理解是加上星号，表示取地址，表示这个指针指向的变量所占内容。我用下面的代码也进行了验证。
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+ 
+int main()
+{
+    int *a;
+    int b =12;
+    printf("%d\n",sizeof(a));
+    printf("%d\n",sizeof(*a));
+    printf("%d\n",sizeof(b));
+    return(0);
+}
+```
+
+输出：
+
+```
+8
+4
+4
+```
+
+第一个是这个指针变量所占的内存的大小，后面两个是整型变量所占的内存大小。
+
+函数指针当作回调函数
+
+[参考链接](https://www.runoob.com/cprogramming/c-fun-pointer-callback.html)，在定义函数指针的时候，要加上typedef关键字，否则会有问题，比如在遍历双向循环链表的时候：`void llist_travel(LLIST *, llist_op *);`,，llist_travel这个函数的第二个参数llist_op就是一个回调函数。
+
+```
+
+//typedef void (*llist_op)(const void *); 这一行不是必须的
+// 这是自定义了一个函数，上面那个才是函数指针
+typedef void  llist_op1 (const void *);
+```
+
+自定义一个函数和自定义一个函数指针用法也不太一样：
+
+在当作参数放到遍历函数里的时候，方式也不太一样，实际上，压根就不需要上面的typedef函数，头文件定义如下：
+
+```
+void llist_travel(LLIST *, void (*llist_op)(const void *));
+void llist_travel1(LLIST *, llist_op1 *);
+```
+
+具体的实现：
+
+可以看出来，自定义函数和自定义函数类型是完全不一样的。
+
+```
+void llist_travel(LLIST * ptr, void (*llist_op)(const void *)){
+    struct llist_node_st *cur;
+    for (cur = ptr->head.next; cur!=&ptr->head; cur = cur->next) {
+        llist_op(cur->data);
+    }
+
+}
+void llist_travel1(LLIST * ptr, llist_op1 * op){
+    struct llist_node_st *cur;
+    for (cur = ptr->head.next; cur!=&ptr->head; cur = cur->next) {
+        op(cur->data);
+    }
+
+}
+```
+
