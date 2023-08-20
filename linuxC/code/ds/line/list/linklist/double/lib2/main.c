@@ -38,8 +38,7 @@ int main(){
         snprintf(tmp.name, NAMESIZE, "std%d", i);
         tmp.math = rand()%100;
         tmp.chinese = rand()%100;
-        //int  ret = llist_insert(handler, &tmp, LLIST_FORWARD);
-        int  ret = handler->insert(handler, &tmp, LLIST_FORWARD);
+        int  ret = llist_insert(handler, &tmp, LLIST_FORWARD);
 
         if (ret) {
             // 不为0，就表示创建失败
@@ -47,8 +46,8 @@ int main(){
         }
     }
     
-    handler->travel(handler, print_s);
-    //llist_travel1(handler, print_s);
+    
+    llist_travel1(handler, print_s);
 #if 0 
     printf("\n\n");
     

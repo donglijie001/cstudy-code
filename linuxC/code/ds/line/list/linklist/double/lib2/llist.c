@@ -3,14 +3,19 @@
 #include <stdlib.h>
 #include "llist.h"
 #include <string.h>
-typedef int  llist_cmp(const void *,  const void *);
-int  llist_insert(struct llist_head *,const void * data, int mode);
-void * llist_find(LLIST *, const void * key, llist_cmp *);
-int  llist_delete(LLIST *, const void * key, llist_cmp *);
-int  llist_fetch(LLIST *, const void * key, llist_cmp *, void * data);
-void llist_travel1(LLIST *, llist_op1 *);
+struct llist_node_st{
+    struct llist_node_st *prev;
+    struct llist_node_st *next;
+    // char data[1]； 视频上讲由于指针偏移，会占用4个字节，这个还不太清楚，等后面再好好看看吧。
+    char data[0];
+};
+struct llist_head_st{
+    int size;
+    struct llist_node_st head;
+    
+};
 LLIST * llist_create(int initsize){
-    LLIST * new ;
+    struct llist_head_st  * new ;
     new = malloc(sizeof(*new));
     if (new == NULL) {
         return NULL;
@@ -18,19 +23,15 @@ LLIST * llist_create(int initsize){
     new ->size = initsize;
     new->head.prev = &(new->head);
     new->head.next = &(new->head);
-    new->insert = llist_insert;
-    new->del = llist_delete;
-    new ->find = llist_find;
-    new ->fetch = llist_fetch;
-    new ->travel = llist_travel1;
     return new;
 }
-int  llist_insert(LLIST * ptr,const void * data, int mode){
+int  llist_insert(LLIST * p,const void * data, int mode){
     // 需要创建一个llist_node_st，并且其中的data要进行赋值
     struct llist_node_st  *newnode;
     // 申请内存有下面两种方式
     //newnode = malloc(sizeof(struct llist_node_st));
     // 申请内存的时候，要加上即将存入数据的size的值，
+    struct llist_head_st *ptr = p;
     newnode = malloc(sizeof(*newnode) + ptr->size);
     if(newnode == NULL){
         return -1;
@@ -65,21 +66,26 @@ int  llist_insert(LLIST * ptr,const void * data, int mode){
 
 
 }
-void llist_travel(LLIST * ptr, void (*llist_op)(const void *)){
+void llist_travel(LLIST * p, void (*llist_op)(const void *)){
     struct llist_node_st *cur;
+    struct llist_head_st *ptr = p;
     for (cur = ptr->head.next; cur!=&ptr->head; cur = cur->next) {
         llist_op(cur->data);
     }
 
 }
-void llist_travel1(LLIST * ptr, llist_op1 * op){
+void llist_travel1(LLIST * p, llist_op1 * op){
     struct llist_node_st *cur;
+    struct llist_head_st *ptr = p;
+
     for (cur = ptr->head.next; cur!=&ptr->head; cur = cur->next) {
         op(cur->data);
     }
 
 }
-void llist_destory(LLIST * ptr){
+void llist_destory(LLIST * p){
+    struct llist_head_st *ptr = p;
+
     struct llist_node_st * cur, * next;
     for (cur = ptr->head.next; cur!= &ptr->head; cur =cur->next) {
         next = cur->next;
@@ -87,8 +93,10 @@ void llist_destory(LLIST * ptr){
     }
     free(ptr);
 }
-static struct llist_node_st * find_(LLIST  * ptr,const void * key, llist_cmp * cmp){
+static struct llist_node_st * find_(LLIST  * p,const void * key, llist_cmp * cmp){
     struct llist_node_st * cur;
+    struct llist_head_st *ptr = p;
+
     for (cur = ptr->head.next; cur!= &ptr->head; cur = cur->next) {
         if (cmp(key,cur->data)==0) {
             //这里假设了数据不会重复
@@ -99,21 +107,24 @@ static struct llist_node_st * find_(LLIST  * ptr,const void * key, llist_cmp * c
     return cur;
     
 }
-void * llist_find(LLIST  * ptr,const void * key, llist_cmp * cmp){
+void * llist_find(LLIST  * p,const void * key, llist_cmp * cmp){
 
     // struct llist_node_st * res= find_(ptr, key, cmp);
     // if (res != NULL) {
     //     return res->data;
     // }
     // return NULL;
+    struct llist_head_st *ptr = p;
     struct llist_node_st *node = find_(ptr, key, cmp);
     if (node == &ptr->head) {
         return NULL;
     }
     return node->data;
 }
-int  llist_delete(LLIST * ptr, const void * key, llist_cmp * cmp){
+int  llist_delete(LLIST * p, const void * key, llist_cmp * cmp){
     struct llist_node_st *node;
+    struct llist_head_st *ptr = p;
+
     node = find_(ptr, key, cmp);
     if (node == &ptr->head) {
         // 没有找到
@@ -127,8 +138,10 @@ int  llist_delete(LLIST * ptr, const void * key, llist_cmp * cmp){
     return 0;
 
 }
-int  llist_fetch(LLIST *ptr, const void * key, llist_cmp * cmp, void * data){
+int  llist_fetch(LLIST *p, const void * key, llist_cmp * cmp, void * data){
     struct llist_node_st *node;
+    struct llist_head_st *ptr = p;
+
     node = find_(ptr, key, cmp);
     if(node == &ptr->head){
         return -1;
