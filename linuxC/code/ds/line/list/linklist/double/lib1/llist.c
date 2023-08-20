@@ -10,7 +10,6 @@ LLIST * llist_create(int initsize){
         return NULL;
     }
     new ->size = initsize;
-    new->head.data = NULL;
     new->head.prev = &(new->head);
     new->head.next = &(new->head);
     return new;
@@ -20,15 +19,17 @@ int  llist_insert(LLIST * ptr,const void * data, int mode){
     struct llist_node_st  *newnode;
     // 申请内存有下面两种方式
     //newnode = malloc(sizeof(struct llist_node_st));
-    newnode = malloc(sizeof(*newnode));
+    // 申请内存的时候，要加上即将存入数据的size的值，
+    newnode = malloc(sizeof(*newnode) + ptr->size);
     if(newnode == NULL){
         return -1;
     }
-    // 给data节点申请内存
-    newnode->data = malloc(ptr->size);
-    if (newnode->data == NULL) {
-        return -2;
-    }
+    // 给data节点申请内存 这一步可以省略
+    //newnode->data = malloc(ptr->size);
+    // 下面这个判断也可以省略了。
+    // if (newnode->data == NULL) { 
+    //     return -2;
+    // }
     // newnode->data 进行赋值，这里不能直接赋值，需要使用内存拷贝函数
     memcpy(newnode->data, data,ptr->size);
 
@@ -71,7 +72,6 @@ void llist_destory(LLIST * ptr){
     struct llist_node_st * cur, * next;
     for (cur = ptr->head.next; cur!= &ptr->head; cur =cur->next) {
         next = cur->next;
-        free(cur->data);
         free(cur);
     }
     free(ptr);
@@ -95,7 +95,11 @@ void * llist_find(LLIST  * ptr,const void * key, llist_cmp * cmp){
     //     return res->data;
     // }
     // return NULL;
-    return find_(ptr, key, cmp)->data;
+    struct llist_node_st *node = find_(ptr, key, cmp);
+    if (node == &ptr->head) {
+        return NULL;
+    }
+    return node->data;
 }
 int  llist_delete(LLIST * ptr, const void * key, llist_cmp * cmp){
     struct llist_node_st *node;
@@ -107,7 +111,7 @@ int  llist_delete(LLIST * ptr, const void * key, llist_cmp * cmp){
     node->prev->next = node ->next;
     node->next->prev = node ->prev;
     //释放内存
-    free(node->data);
+    //free(node->data);
     free(node);
     return 0;
 
@@ -123,7 +127,7 @@ int  llist_fetch(LLIST *ptr, const void * key, llist_cmp * cmp, void * data){
     if (node !=NULL) {
         memcpy(data, node->data, ptr->size);
     }
-    free(node->data);
+    //free(node->data);
     free(node);
     return 0;
 }

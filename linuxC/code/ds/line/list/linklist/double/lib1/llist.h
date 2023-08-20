@@ -4,9 +4,10 @@
 #define LLIST_BACKWARD 2
 
 struct llist_node_st{
-    void * data;
     struct llist_node_st *prev;
     struct llist_node_st *next;
+    // char data[1]； 视频上讲由于指针偏移，会占用4个字节，这个还不太清楚，等后面再好好看看吧。
+    char data[0];
 };
 typedef  struct{
     int size;
