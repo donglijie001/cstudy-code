@@ -1879,11 +1879,11 @@ typedef  struct{
 
 # 用过的c语言知识
 
-**snprintf**
+## **snprintf**
 
 作用：[格式化输出字符串，将结果写入到指定的缓冲区](https://www.runoob.com/cprogramming/c-function-snprintf.html)
 
-sizeof
+## sizeof
 
 这个函数主要是用来计算，输入的变量的size，让我疑惑的是，比如我定义了一个struct，然后我想要计算这个struct的大小，首先我定义了一个指针变量`struct llist_node_st  *newnode;`,然后我使用sizeof的时候，`sizeof(newnode)`,这样得到的size并不是struct llist_node_st的size，而是newnode 这个指针的大小，应该使用`sizeof(*newnode)`，我的理解是加上星号，表示取地址，表示这个指针指向的变量所占内容。我用下面的代码也进行了验证。
 
@@ -1951,5 +1951,16 @@ void llist_travel1(LLIST * ptr, llist_op1 * op){
     }
 
 }
+```
+
+## if(0) if(1)
+
+条件判断，在c语言里，0就表示为false，1就表示为真（准确来说，非0，就表示为真）。比如下面这段代码，就会输出true。
+
+```
+int x =-1;
+	if(x){
+		printf("true");
+	}
 ```
 
