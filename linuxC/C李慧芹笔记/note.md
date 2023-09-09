@@ -1964,3 +1964,193 @@ int x =-1;
 	}
 ```
 
+## 静态库和动态库
+
+libxx.a, 静态库的名字就是xx。
+
+![image-20230826194109563](note.assets/image-20230826194109563.png)
+
+/usr/local/inclue 存储的是头文件
+
+/usr/local/lib 存储的是库的二进制内容。
+
+ldd  可执行文件名，查看当前可执行文件依赖的动态库.
+
+![image-20230826194457250](note.assets/image-20230826194457250.png)
+
+制作静态库：
+
+1、先生成一个.o文件
+
+```
+gcc -c llist.c  // 生成一个llist.o文件
+```
+
+2、生成静态库文件
+
+```
+ar -cr libllist.a llist.o
+```
+
+3、发布静态库文件
+
+```
+sudo cp libllist.a /usr/local/lib
+sudo cp llist.h /usr/local/include
+```
+
+4、使用静态库
+
+```
+gcc -o main main.c -lllist
+```
+
+而且这个时候，可以把main.c中对llist.h的依赖从双信号改成尖括号。
+
+并且只保留main.c就可以了。
+
+![image-20230826202822383](note.assets/image-20230826202822383.png)
+
+然后用上面的gcc -o的命令就可以编译了
+
+制作动态库
+
+![image-20230826210029489](note.assets/image-20230826210029489.png)
+
+1、生成动态库文件
+
+```
+gcc -shared -fpic -o libllist.so llist.c
+```
+
+2、发布头文件和静态库文件
+
+```
+sudo cp libllist.so /usr/local/lib // 发布动态库，头文件已发布
+```
+
+3、修改配置文件把刚刚的二进制文件的路径给加进去。
+
+![image-20230826205756757](note.assets/image-20230826205756757.png)
+
+4、重读配置文件
+
+```
+sudo /sbin/ldconfig
+```
+
+## 二级指针
+
+测试二级指针可以用下面这段代码
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#define NAMESIZE 32
+
+struct score_st{
+    int id;
+    char name[NAMESIZE];
+    int math;
+    int chinese;
+};
+void test(struct score_st **root){
+	struct score_st **node = root;
+	printf("%p\n", root);
+	printf("%p\n", node);
+	printf("%p\n", &root);
+	printf("%p\n", &node);
+	printf("%p\n", *root);
+	printf("%p\n", *node);
+	struct score_st *tmp =NULL;
+	tmp= malloc(sizeof(*tmp));
+	*node= tmp;
+	//node = &tmp;
+	printf("%p\n", root);
+	printf("%p\n", node);
+	printf("%p\n", &root);
+	printf("%p\n", &node);
+	printf("%p\n", *root);
+	printf("%p\n", *node);
+	printf("%p\n", tmp);
+	
+}
+int main()
+{
+   /*  Write C code in this online editor and run it. */
+   printf("Hello, World! \n");
+   struct score_st *node =NULL;
+	node= malloc(sizeof(*node));
+	printf("%p\n", node);
+	printf("%p\n", &node);
+	
+	test(&node);
+	printf("%p\n", node);
+	printf("%p\n", &node);
+	
+   return 0;
+}
+```
+
+## char
+
+char型变量不要当作参数进行传递，直接使用int。
+
+## 数组作为函数参数传递
+
+数组作为函数参数传递，一般是同时传递数组名和数组长度。
+
+```
+int sum_array(int a[], int n) {
+  // ...
+}
+int sum_array(int *a, int n) {
+  // ...
+}
+```
+
+上面这两种方式都可以，在传递的时候，要把数组以及长度都传过去，求数组长度可以使用`sizeof(arr)/sizeof(*arr)`,但是这个需要在数组定义的地方来使用，否则会有问题。
+
+比如下面这段代码。在print_arr1里面，传递了数组指针，但是但是实际上是求不出来数组的长度的，在在线编辑器里求出来的长度为2，实际上是指针的长度8/指针指向元素的长度4得出来的2。
+
+```
+#include <stdio.h>
+void change_arr(int arr[], int length){
+	arr[0]=12;
+}
+void print_arr1(int *arr){
+	printf("%sarrLength%d\n",__FUNCTION__,sizeof(arr)/sizeof(*arr));
+	for(int i=0;i<sizeof(arr)/sizeof(*arr);i++){
+		printf("%d ",arr[i]);
+	}
+	printf("\n");
+}
+void print_arr2(int **arr){
+	printf("%sarrLength%d\n",__FUNCTION__,sizeof(*arr)/sizeof(**arr));
+	for(int i=0;i<sizeof(*arr)/sizeof(**arr);i++){
+		printf("%d ",(*arr)[i]);
+	}
+	printf("\n");
+}
+void print_arr(int arr[], int length){
+	for(int i=0;i<length;i++){
+		printf("%d ",arr[i]);
+	}
+	printf("\n");
+}
+int main()
+{
+   /*  Write C code in this online editor and run it. */
+  int arr[]  ={1,2,3,3,4,5,6,7,8}, *p;   
+	p=arr;
+	change_arr(arr,3);
+	print_arr1(p);
+	print_arr2(&p);
+	int length= sizeof(arr)/sizeof(*arr);
+	printf("length:%d\n",length);
+	print_arr(arr,length);
+	
+   return 0;
+}
+```
+
