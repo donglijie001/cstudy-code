@@ -10,7 +10,9 @@ rsync -av /Users/donglijie/Desktop/selfLearning/cstudy-code donglijie@192.100.21
 
 [代码参考链接](https://github.com/impact-eintr/LinuxC)
 
-# 1 学习方法和基本概念简单介绍
+# C基本内容
+
+## 1 学习方法和基本概念简单介绍
 
 学习建议：
 
@@ -46,7 +48,7 @@ c课程讲解思路
 
 ​	11、常用库函数
 
-## 1.2 gcc与vim的使用
+### 1.2 gcc与vim的使用
 
 hello world 程序，c语言main函数定义有很多种，在该课程里面，如果main函数不需要传参数，就定义成 int main(void), 如果需要传参数就定义成int main(int arc, char ** argv);
 
@@ -72,7 +74,7 @@ vim 熟悉vim常用的脚本
 
 我不太想用vim。后面再说吧。
 
-## 1.3 基本概念
+### 1.3 基本概念
 
 写代码的时候把gcc报的warnging都给解决掉，除非你能确认这个warnging对程序无影响。
 
@@ -100,9 +102,9 @@ gcc 编译的时候， -Wall 选项可以打印出所有的警告
 
 ​	防止写越界，防止内存泄漏，谁打开谁关闭，谁申请谁释放。
 
-# 2 数据类型，运算符和表达式
+## 2 数据类型，运算符和表达式
 
-## 2.1 数据类型（基本数据类型）
+### 2.1 数据类型（基本数据类型）
 
 如下图
 
@@ -142,7 +144,7 @@ gcc 编译的时候， -Wall 选项可以打印出所有的警告
 
 ​		（5）数据类型与后续代码中所使用的输入输出要相匹配（防止自相矛盾）。
 
-## 2.2 常量与变量
+### 2.2 常量与变量
 
 常量：在程序执行过程中值不会发生变化的量。
 
@@ -351,7 +353,7 @@ void funcTest(void);
 
 ![image-20230519133518800](note.assets/image-20230519133518800.png)
 
-## 2.3 运算符和表达式
+### 2.3 运算符和表达式
 
 取余：% 要求两边都是正数。
 
@@ -367,7 +369,7 @@ sizeof： 是一个运算符，不是关键字。
 
 ​	从一个指定宽度的数中取出其中的某几位。
 
-# 3 输入、输出专题
+## 3 输入、输出专题
 
 标准IO和文件IO
 
@@ -450,13 +452,13 @@ int main(void){
 
 ​	gets函数没有对输入的字符串的长度进行校验。可以使用fgets来代替。
 
-# 4 流程控制
+## 4 流程控制
 
 画流程图可以使用Dia，[参考链接](https://zhuanlan.zhihu.com/p/366116011)
 
-# 5 数组
+## 5 数组
 
-## 5.1一维数组
+### 5.1一维数组
 
 定义：[存储类型] 数据类型 标识符x
 
@@ -591,7 +593,7 @@ int main(void){
 }
 ```
 
-## 5.2二维数组
+### 5.2二维数组
 
 定义，初始化：[存储类型] 数据类型 标识符[行下标] [列下标]
 
@@ -659,7 +661,7 @@ int main(){
 
 ![image-20230521191258963](note.assets/image-20230521191258963.png)
 
-## 5.3字符数组
+### 5.3字符数组
 
 初始化，使用字符初始化，或者使用字符串常量初始化。
 
@@ -675,7 +677,7 @@ strcpy 拷贝字符串
 
 strncpy 拷贝字符串，同时指定长度。
 
-# 6 指针
+## 6 指针
 
 1、变量与地址的关系
 
@@ -983,13 +985,13 @@ char *str = "helloll";
 
 11、多级指针
 
-# 7 函数
+## 7 函数
 
-## 1、函数的定义
+### 1、函数的定义
 
 ​	数据类型 函数名(数据类型 形参名)
 
-## 2、函数的传参
+### 2、函数的传参
 
 ​	值传递
 
@@ -997,15 +999,15 @@ char *str = "helloll";
 
 ​	引用变量
 
-## 3、函数的调用
+### 3、函数的调用
 
 ​	嵌套调用
 
 ​	递归s
 
-## 4、函数与数组
+### 4、函数与数组
 
-### 	函数与一维数组
+#### 	函数与一维数组
 
 ```
 #include <stdio.h>
@@ -1070,7 +1072,7 @@ void print_arr2(int a[5]){
 }
 ```
 
-### 	函数与二维数组
+#### 	函数与二维数组
 
 ```
 #include <stdio.h>
@@ -1232,9 +1234,9 @@ int main(){
 }
 ```
 
-# 八 构造类型
+## 八 构造类型
 
-## 结构体
+### 结构体
 
 ### 1、产生及意义
 
@@ -1576,9 +1578,9 @@ enum 标识符{
 }
 ```
 
-# 九动态内存管理
+## 九动态内存管理
 
-## malloc calloc realloc free 
+### malloc calloc realloc free 
 
 原则：谁申请谁释放
 
@@ -1692,7 +1694,7 @@ typedef int* (*FUNCP)(int);
 FUNCP p;-->int* (*p)(int) // 定义了一个函数指针，该函数返回值是int*，形参是int。
 ```
 
-# 十 Makefile工程文件的编写规则
+## 十 Makefile工程文件的编写规则
 
 文件名叫makefile 或者Makefile都可以。[参考链接](https://seisman.github.io/how-to-write-makefile/)
 
@@ -1876,6 +1878,348 @@ typedef  struct{
 ```
 
 上面这种定义，有一个问题就是在llist_node_st结构体中定义了一个指针data，用来指向要添加的数据，而且data这个指针，也占四个字节。这里就用到了[柔性数组](https://cloud.tencent.com/developer/article/2019613)这个是c99才开始支持的标准。
+
+# 俄罗斯方块项目
+
+1、图形
+
+​	画图工具：ANSI_VT和frame_buffer
+
+ANSI_VT以光标为单位进行着色，frame_buffer 使用像素点进行着色。
+
+```
+光标控制码以\033开头
+\033[2J 清除屏幕
+\033[M;NH 将光标移至第X行，第Y列的位置。
+```
+
+2、输入设备的设置（用于当通过键盘玩游戏的时候，不在控制台显示对应的文字）
+
+# linux系统开发
+
+参考书籍：
+
+<img src="note.assets/image-20230909192008021.png" alt="image-20230909192008021" style="zoom:25%;" />
+
+unix 环境高级编程第二版有错误。
+
+```
+3～16 章（9章与本次项目关系不大）
+I/O：3、5 章
+
+文件系统：4、6、7
+
+并发：
+	信号10章
+	多线程10、11章
+IPC：进程间通信
+	8章 进程基础（涉及到多进程）
+	13章守护进程
+	15、16章
+	
+```
+
+## I/O 
+
+I/O：input&output是一切实现的基础。
+
+标准IO和系统IO
+
+标准IO依赖系统IO，系统IO在不同的系统内是不一样的，比如标准IO：fopen，在linux依赖open系统调用，在windows下依赖openfile。
+
+stdio：FILE类型贯穿始终。
+
+man手册 第一章：linux基本使用 第二章：系统IO，第三章：标准IO。
+
+### fopen& fclose
+
+fopen:打开文件，成功返回FILE对象，否则返回NULL，并且会设置errno，但是errno是一个全局的，如果不立即取出来，就会被后面的程序给覆盖，errno就是一个整型变量。这是最开始的定义，errno一开始是一个串，现在已经是一个宏了。
+
+验证：
+
+创建一个文件，errno.c,
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+errno;
+```
+
+使用预处理命令：gcc -E errno.c，可以看到下面的输出，errno已经被替换了，就说明errno现在是一个宏。
+
+![image-20230910134507680](note.assets/image-20230910134507680.png)
+
+在`/usr/include/asm-generic/errno-base.h`里面有错误码
+
+fopen打开模式，r，w，a，除了这个以外，还有个b，这个是在windows下会进行区分，就是把文件以二进制流进行处理，还是以字符流进行处理。但是在linux都是以二进制流进行处理，所以可以忽略。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+
+int main(){
+    FILE * fp;
+    fp = fopen("tmp", "r");
+    if (fp==NULL) {
+        //fprintf(stderr, "fopen() failed!errno=%d\n", errno);
+        perror("fopen()");
+       fprintf(stderr, "fopen() failed!%s\n", strerror(errno));
+        exit(1);
+    }
+    puts("OK!");
+    exit(0);
+
+}
+```
+
+当打开文件失败时会提示错误信息。这里使用了两个函数perror和strerror。
+
+fopen返回的File指针存放在**堆里**，并没有存放在栈里或者静态区里。
+
+fopen在一个进程里能打开的文件是有限制的。
+
+在不更改当前默认环境的话，一个进程默认打开了三个流，stdin、stdout、stderr,能够打开的文件是1024。
+
+下面这段代码时输出结果是1021。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+
+int main(){
+    FILE * fp=NULL;
+    int count =0;
+    while (1) {
+        fp = fopen("tmp", "r");
+
+        if (fp==NULL) {
+            perror("fopen()");
+            break;
+        }
+        count ++;
+    }
+    printf("count= %d \n", count);
+    exit(0);
+
+}
+```
+
+创建文件权限 0666 & ~umask
+
+### fgetc&fputc
+
+fgetc 和getc是相同的，只不过getc是被定义成宏，而fgetc被定义成函数。
+
+Fputc 和fgetc是类似的。
+
+小练习实现mycp命令，类似cp。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+/**
+ * @brief 实现的类似cp的程序，接收三个参数。
+ * 
+ * @param argc 
+ * @param argv 
+ * @return int 
+ */
+int main(int argc, char ** argv){
+
+    if (argc!=3) {
+        fprintf(stderr, "Usage%s <src_file> <dest_file>\n",argv[0]);
+        exit(1);
+    }
+    FILE * fps,*fpd;
+    fps = fopen(argv[1], "r");
+    if (fps==NULL) {
+        perror("fopen()");
+        exit(1);
+    }
+    fpd = fopen(argv[2], "w");
+    if (fpd==NULL) {
+        fclose(fps);
+        perror("fopen()");
+        exit(1);
+    }
+    int ch;
+    while (1) {
+        ch = fgetc(fps);
+        if (ch==EOF) {
+            break;
+        }
+        //这个一般不会出错，所以先不校验
+        fputc(ch, fpd);
+    }
+
+    fclose(fpd);
+    fclose(fps);
+
+}
+```
+
+### fgets&fputs
+
+gets有bug，使用fgets代替。
+
+```
+char *fgets(char *s, int size, FILE *stream)
+```
+
+fgets有两种情况会停止读取，一种是读到换行符，另外一种是读了n-1个字符，因为第n个字符要加上'\0',组成一个字符串。
+
+```
+#define SIZE 5
+char buf[SIZE]
+fgets(buf,SIZE,stream);
+要读的文件内容： ab
+实际上ab后面还有一个换行符
+这个时候fgets读到buf里的内容是： ab\n'\0'
+当文件里只有abcd
+这个时候会读取两次才能把文件给完。
+第一次： a b c d '\0'
+第二次： \n '\0'
+```
+
+fputs将特定的串输出指定的流里去。
+
+小练习，使用fgets实现mycp的功能
+
+### fread&fwrite
+
+```
+size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+// 从流里读取nmemb 个对象，对象大小是size，然后写入到指针ptr里
+size_t fwrite(const void *ptr, size_t size, size_t nmemb,FILE *stream);
+// 从指针ptr里读取nmemb个对象，对象大小是size，然后写入到流里
+```
+
+<img src="note.assets/image-20230916192403898.png" alt="image-20230916192403898" style="zoom:50%;" />
+
+第一种情况，当对象大小是1个字节，读取十个，上面和下面都返回
+
+一般就把fread 当作fgetc使用，即把fread读取的元素size大小设置为1。
+
+使用fread实现的cp命令。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#define BUFSIZE 1024
+/**
+ * @brief 实现的类似cp的程序，接收三个参数。
+ * 
+ * @param argc 
+ * @param argv 
+ * @return int 
+ */
+int main(int argc, char ** argv){
+
+    if (argc!=3) {
+        fprintf(stderr, "Usage%s <src_file> <dest_file>\n",argv[0]);
+        exit(1);
+    }
+    FILE * fps,*fpd;
+    char buf[BUFSIZE];
+    fps = fopen(argv[1], "r");
+    if (fps==NULL) {
+        perror("fopen()");
+        exit(1);
+    }
+    fpd = fopen(argv[2], "w");
+    if (fpd==NULL) {
+        fclose(fps);
+        perror("fopen()");
+        exit(1);
+    }
+    int ch;
+    int len=0;
+    while ((len=fread(buf, 1,BUFSIZ, fps))>0) {
+        fwrite(buf,1,len,fpd);
+    }
+
+    fclose(fpd);
+    fclose(fps);
+
+}
+```
+
+### fseek&ftell&rewind
+
+里面的参数是long，很丑，这两个函数当文件大小超过2G可能会有问题。
+
+可替代的是fseeko和ftello，但是这两个函数遵循的协议posix标准的，移植性不好。
+
+在fseeko中有一个参数off_t，
+
+![image-20230923152147631](note.assets/image-20230923152147631.png)
+
+rewind 直接把文件指针返回到文件首。
+
+示例：求一个文件的长度。
+
+### fflush
+
+刷新缓冲区，可以指定流，当不指定流的时候，会把所有的打开的流，都进行刷新。
+
+比如下面这段代码：
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+int main(){
+    int i;
+    printf("Before While");
+    while (1) ;
+    printf("after While");
+
+    exit(0);
+}
+```
+
+正常应该打印出Before While，但是实际运行的结果并没有。
+
+![image-20230921090901477](note.assets/image-20230921090901477.png)
+
+原因是因为printf只有当缓冲区满或者遇到换行符才会打印输出，所以可以改成下面这样。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+int main(){
+    int i;
+    printf("Before While\n");
+    while (1) ;
+    printf("after While\n");
+
+    exit(0);
+}
+```
+
+也可以用另外一种方式，不加换行符，调用fflush方法也是可以的。
+
+缓冲区的作用：大多数情况下是好事，合并系统调用。
+
+行缓冲：换行时刷新，满了的时候刷新，强制刷新（标准输出是这样的，因为是终端设备）。
+
+全缓冲：满了的时候刷新，强制刷新（默认，只要不是终端设备）。
+
+无缓冲：如stderr，需要立即输出的内容。
+
+setvbuf可以修改缓冲模式。
+
+### getline
+
+获取一行，在视频里需要添加一个宏定义，
+
+<img src="note.assets/image-20230923151811953.png" alt="image-20230923151811953" style="zoom:50%;" />
+
+可以在makefile里面添加![image-20230923152022508](note.assets/image-20230923152022508.png)
 
 # 用过的c语言知识
 
