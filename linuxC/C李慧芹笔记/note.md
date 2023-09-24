@@ -10,6 +10,8 @@ rsync -av /Users/donglijie/Desktop/selfLearning/cstudy-code donglijie@192.100.21
 
 [代码参考链接](https://github.com/impact-eintr/LinuxC)
 
+[标准c和gnuc](https://blog.csdn.net/goodshanzi/article/details/119454523)
+
 # C基本内容
 
 ## 1 学习方法和基本概念简单介绍
@@ -1756,7 +1758,7 @@ int main(void){
 
 makefile
 
-需要注意的一点是，编辑main.o too1.o too2.o 这些目标文件时，都加上了-c选项，表示只生成目标文件（只进行编译，不生成链接生成可执行文件）。
+需要注意的一点是，编辑main.o too1.o too2.o 这些目标文件时，都加上了-c选项，表示只生成目标文件（只进行编译，不进行链接生成可执行文件）。
 
 ```
 mytool:main.o tool1.o tool2.o
@@ -1975,7 +1977,9 @@ int main(){
 }
 ```
 
-当打开文件失败时会提示错误信息。这里使用了两个函数perror和strerror。
+当打开文件失败时会提示错误信息。这里使用了两个函数[perror和strerror](https://blog.csdn.net/luseysd/article/details/120081009)。
+
+
 
 fopen返回的File指针存放在**堆里**，并没有存放在栈里或者静态区里。
 
@@ -2015,7 +2019,7 @@ int main(){
 
 fgetc 和getc是相同的，只不过getc是被定义成宏，而fgetc被定义成函数。
 
-Fputc 和fgetc是类似的。
+Fputc 和fputc是类似的。
 
 小练习实现mycp命令，类似cp。
 
@@ -2220,6 +2224,73 @@ setvbuf可以修改缓冲模式。
 <img src="note.assets/image-20230923151811953.png" alt="image-20230923151811953" style="zoom:50%;" />
 
 可以在makefile里面添加![image-20230923152022508](note.assets/image-20230923152022508.png)
+
+getline函数，返回的数字不包含尾0；
+
+demo：
+
+```
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+int main(int argc,char ** argv){
+    if (argc<2) {
+     fprintf(stderr, "Usage...\n");
+        exit(1);
+    }
+    FILE * fp;
+    // 在声明指针的时候，一定要给变量设置初始值，否则会出现段错误。
+    //char * linebuf=NULL;
+    char * linebuf;
+    //size_t linesize=0;
+    size_t linesize;
+    fp= fopen(argv[1], "r");
+    if (fp==NULL) {
+        perror("fopen()");
+    }
+    while (1) {
+        // 这里并没有把linebuf申请的内存给释放掉。
+        if (getline(&linebuf, &linesize, fp)<0) {
+            // 没有读到数据
+            break;
+        }
+        printf("%s\n", linebuf);
+        printf("%d\n", strlen(linebuf));
+        printf("%d\n", linesize);
+
+    }
+    fclose(fp);
+    exit(0);
+}
+```
+
+上面这个demo是有问题的，会报段错误。我这里打算用gdb debug一下。
+
+首先修改makefile文件，添加-g选项。
+
+然后输入`gdb getline`开始调试。
+
+接着输入`start makefile`，这个会停止到main函数的第一行。
+
+在start的时候，makefile是文件路径，需要传绝对路径进去。
+
+输入step或者next执行下一行。二者区别，如果下一行要执行的是函数，step会进入到函数内部执行，而next则会把这个函数给执行完。
+
+看了man手册，getline第一个参数指针可以指向NULL，也可以是一个已经调用malloc函数分配内存的地址。man手册的示例代码，是把第一个参数给置为null了。
+
+还有一个问题，当把linebuf置为null的时候，我在debug的时候，传递的makefile文件路径不是绝对路径，也没有问题。感觉好奇怪。
+
+既然是段错误，那就把段错误文件给转存下来，然后查看段错误文件，[参考链接](https://blog.csdn.net/test1280/article/details/73655994)
+
+```
+ulimit -c unlimited # 先通过这行命令设置不限制core dump文件大小。
+```
+
+调试core dump文件：[参考1](https://zhuanlan.zhihu.com/p/74897601) [参考2](https://www.yanbinghu.com/2018/09/26/61877.html)
+
+![image-20230923205103683](note.assets/image-20230923205103683.png)
+
+从上面这张图可以看出来是在第28行报的错。
 
 # 用过的c语言知识
 
