@@ -2015,6 +2015,8 @@ int main(){
 
 创建文件权限 0666 & ~umask
 
+第一个0表示是8进制数。
+
 ### fgetc&fputc
 
 fgetc 和getc是相同的，只不过getc是被定义成宏，而fgetc被定义成函数。
@@ -2225,7 +2227,7 @@ setvbuf可以修改缓冲模式。
 
 可以在makefile里面添加![image-20230923152022508](note.assets/image-20230923152022508.png)
 
-getline函数，返回的数字不包含尾0；
+getline函数，返回的结果不包含尾0；
 
 demo：
 
@@ -2291,6 +2293,257 @@ ulimit -c unlimited # 先通过这行命令设置不限制core dump文件大小�
 ![image-20230923205103683](note.assets/image-20230923205103683.png)
 
 从上面这张图可以看出来是在第28行报的错。
+
+我自己实现的类似getline功能的代码，妈的，花了我一小时。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+/**
+ * 实现的类似getline函数的功能，一开始linebuf为null，然后申请内存，随着内容越来越多，然后在realloc扩展内存
+ */
+ int add_char_to_linebuf(char ** linebuf, uint32_t * linesize, int ch){
+    // 把字符给加到linebuf里，如果满了的话，就调用realloc函数再获取内存。
+    // 先构建一个字符串tmp，然后调用字符串拼接函数，把字符串tmp给拼接到linebuf里。
+    char tmp[2]={ch};
+    // 拼接之前先看linebuf是不是已经满了
+    int len= strlen(*linebuf);
+    // strlen 返回字符串长度不包含尾0，因此，需要加1
+    if (*linesize == (len+1)) {
+        // 这个时候说明分配的空间已满，需要扩大内存。
+        // 这里直接扩大二倍
+        *linesize = 2*(*linesize); 
+        *linebuf= realloc(*linebuf, (*linesize) *sizeof(char));
+        if (*linebuf == NULL) {
+            perror("realloc");
+            exit(1);
+        }
+    }
+    strcat(*linebuf, tmp);
+    return 0;
+}
+ int add_char_to_linebuf1(char * linebuf, uint32_t * linesize, int ch){
+ //这是有问题的版本。
+    // 把字符给加到linebuf里，如果满了的话，就调用realloc函数再获取内存。
+    // 先构建一个字符串tmp，然后调用字符串拼接函数，把字符串tmp给拼接到linebuf里。
+    char tmp[2]={ch};
+    // 拼接之前先看linebuf是不是已经满了
+    int len= strlen(linebuf);
+    // strlen 返回字符串长度不包含尾0，因此，需要加1
+    if (*linesize == (len+1)) {
+        // 这个时候说明分配的空间已满，需要扩大内存。
+        // 这里直接扩大二倍
+        *linesize = 2*(*linesize); 
+        linebuf= realloc(linebuf, (*linesize) *sizeof(char));
+        if (linebuf == NULL) {
+            perror("realloc");
+            exit(1);
+        }
+    }
+    strcat(linebuf, tmp);
+    return 0;
+}
+int get_line(char **linebuf, uint32_t * linesize,FILE * stream){
+    if (*linesize==0) {
+        *linesize=2;
+    }
+    if (*linebuf== NULL) {
+        // 函数第一次进入，这个时候，就需要分配内存，
+        *linebuf = malloc((*linesize) *sizeof(char));
+        
+    }
+    if (*linebuf== NULL) {
+        // 分配内存不成功，直接返回
+        return -2;
+    }
+    // 内存分配成功，开始读取文件内容，要先判断stream是否为null，为null直接返回
+    if (stream==NULL) {
+        return -3;
+    }
+    // 文件流不为空，开始读取文件，这里使用fgetc。
+    int ch;
+    // 读之前把linebuf全部置为空
+    memset(*linebuf, '\0', *linesize);
+    while (1) {
+        ch = fgetc(stream);
+        if (ch==EOF ) {
+            // 读到的字符等于EOF，说明到了文件结尾了，这个时候，就该停止了
+            break;
+        }
+        if (ch=='\n') {
+            // 等于换行符，说明读到了一行的结尾,这个时候需要把读取到的换行符给添加到linebuf中
+            add_char_to_linebuf(linebuf, linesize, ch);
+            //add_char_to_linebuf1(*linebuf, linesize, ch);
+
+            break;
+        }
+        add_char_to_linebuf(linebuf, linesize, ch);
+        //add_char_to_linebuf1(*linebuf, linesize, ch);
+
+    }
+    // 返回一行读取的字符数
+    int len=strlen(*linebuf);
+    if (ch==EOF && len ==0) {
+        return -1;
+    }
+    return len;
+}
+
+int main(int argc,char ** argv){
+    if (argc <2) {
+        fprintf(stderr, "invalid argument\n");
+        exit(1);
+    }
+    //以只读模式打开文件
+    FILE * fp = fopen(argv[1], "r");
+    if (fp==NULL) {
+        // 打印失败原因
+        perror("fopen()");
+        exit(1);
+    }
+
+    char* linebuf=NULL;
+    uint32_t linesize=0;
+    int count=0;
+    while (1) {
+        if ((count=get_line(&linebuf, &linesize, fp))<0) {
+            // 返回结果小于0，说明结束了。
+            break;
+        }
+        printf("content:%s\n", linebuf);
+        printf("linesize:%d\n",linesize);
+        printf("readcount:%d\n", count);
+
+    }
+    // 关闭指针
+    fclose(fp);
+    free(linebuf);
+    printf("%d\n",sizeof(char));
+
+    
+#if 0
+    char * str =malloc(6 *sizeof(char));
+    printf("sizeof(str):%d\n", sizeof(*str));
+    if (*str =='\0') {
+        printf("str only have '\\0'\n");
+    }
+    printf("%s\n", str);
+    printf("%d\n", *str);
+    char string[2]={'a'};
+    strcat(str,string);
+    char string1[2]={'b'};
+
+    strcat(str,string1);
+    printf("after add sizeof(str):%d\n", sizeof(*str));
+    printf("first character%c\n", *(str+1));
+
+    printf("strlen(str):%d\n", strlen(str));
+    printf("%s\n", str);
+    printf("sizeof(char):%d", sizeof(char));
+    int* i = malloc(sizeof(int));
+
+    printf("i%d\n", *i);
+#endif
+
+
+    exit(0);
+}
+```
+
+出现了一个问题，报了一个错误`invalid next size`，我查了好久，这个报错是在调用`realloc`的时候，在这个代码里，我使用了动态内存，当空间不够的时候，我会再扩大内存。但是realloc在扩大内存的时候，存在下面两种情况：
+
+```
+realloc 函数重新分配内存的时候，存在一下两种情况（扩大内存的情况）：
+
+ptr指针后续仍有足够空间分配size大小的内存
+此时，realloc函数会在ptr的尾部开辟size大小的内存。
+ptr指针后续没有足够空间分配size大小的内存
+此时，realloc函数会在其它内存位置分配一个size大小的内存空间，并将原有大小的数据复制到新地址。此时新空间的地址发生了变化。
+```
+
+[参考链接](https://www.jianshu.com/p/1d814eaa74ef)
+
+原因就是我在遍历文件的某一行的时候，申请给linebuf增加内存，但是linebuf的地址发生了改变，但是在add_char_to_linebuf1里面，我并没有把linebuf改变后的地址传递给二级指针，导致在读下一行的时候出现了问题。
+
+```
+int add_char_to_linebuf1(char * linebuf, uint32_t * linesize, int ch){
+ //这是有问题的版本。
+    // 把字符给加到linebuf里，如果满了的话，就调用realloc函数再获取内存。
+    // 先构建一个字符串tmp，然后调用字符串拼接函数，把字符串tmp给拼接到linebuf里。
+    char tmp[2]={ch};
+    // 拼接之前先看linebuf是不是已经满了
+    int len= strlen(linebuf);
+    // strlen 返回字符串长度不包含尾0，因此，需要加1
+    if (*linesize == (len+1)) {
+        // 这个时候说明分配的空间已满，需要扩大内存。
+        // 这里直接扩大二倍
+        *linesize = 2*(*linesize); 
+        linebuf= realloc(linebuf, (*linesize) *sizeof(char));
+        if (linebuf == NULL) {
+            perror("realloc");
+            exit(1);
+        }
+    }
+    strcat(linebuf, tmp);
+    return 0;
+}
+```
+
+### 临时文件
+
+两个问题：1、创建文件不冲突。2、创建文件及时销毁。
+
+tmpnam 没有办法创建一个十分安全的临时文件。
+
+tmpfile 直接返回一个临时文件FILE指针。
+
+### 系统调用IO：文件描述符
+
+fd：在文件IO中贯穿始终的类型。
+
+文件描述符的概念（就是一个整数，数组下标，优先使用当前数组可用下标最小的）：open，close，read，write，lseek
+
+![image-20230925084948436](note.assets/image-20230925084948436.png)
+
+下面这张图是在一个进程空间内，如果有另外一个进程打开同一个文件，会创建同一个结构体。
+
+![image-20230925085617552](note.assets/image-20230925085617552.png)
+
+在同一个进程内，一个文件被打开，会创建两个结构体。
+
+![image-20230925085822273](note.assets/image-20230925085822273.png)
+
+而且不同的文件描述符可以指向一个相同的结构体，4和6就是，当释放4的时候，并不会立刻把结构体给释放掉，因为6还指向这个结构体，所以这个结构体上还有一个引用计数器。
+
+![image-20230925090204002](note.assets/image-20230925090204002.png)
+
+标准IO和系统IO读写模式对应关系
+
+<img src="note.assets/image-20230925091620686.png" alt="image-20230925091620686" style="zoom:50%;" />
+
+文件IO与标准IO的区别
+
+IO的效率问题
+
+文件共享
+
+原子操作
+
+程序中的重定向：dup，dup2
+
+同步：sync、fsync、fdatasync
+
+fcntl（）
+
+ioctl（）
+
+/dev/fd 目录
+
+
+
+
 
 # 用过的c语言知识
 
