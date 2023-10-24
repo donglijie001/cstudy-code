@@ -1,19 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
-
+#include <errno.h>
 int main(){
-    FILE * fp;
-    fp = fopen("tmp", "r");
+    // 以只读形式打开文件
+    FILE * fp = fopen("tmp1", "r");
     if (fp==NULL) {
-        //fprintf(stderr, "fopen() failed!errno=%d\n", errno);
+        //fprintf(stderr, "open error, errno:%d\n", errno);
+        // 这里用perror更好
         perror("fopen()");
-       fprintf(stderr, "fopen() failed!%s\n", strerror(errno));
         exit(1);
     }
-    puts("OK!");
-    fclose(fp);;
-    exit(0);
-
 }

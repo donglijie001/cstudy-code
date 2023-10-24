@@ -1923,9 +1923,11 @@ IPC：进程间通信
 
 ## I/O 
 
+### 标准IO
+
 I/O：input&output是一切实现的基础。
 
-标准IO和系统IO
+标准IO和系统IO(文件io)，优先使用标准io。
 
 标准IO依赖系统IO，系统IO在不同的系统内是不一样的，比如标准IO：fopen，在linux依赖open系统调用，在windows下依赖openfile。
 
@@ -1933,9 +1935,30 @@ stdio：FILE类型贯穿始终。
 
 man手册 第一章：linux基本使用 第二章：系统IO，第三章：标准IO。
 
-### fopen& fclose
+#### 流和FILE对象
 
-fopen:打开文件，成功返回FILE对象，否则返回NULL，并且会设置errno，但是errno是一个全局的，如果不立即取出来，就会被后面的程序给覆盖，errno就是一个整型变量。这是最开始的定义，errno一开始是一个串，现在已经是一个宏了。
+​    对于ACSII字符集，一个字符用**一个字节**表示，而对于国际字符集，一个字符可用**多个字节**表示。
+
+​    流的定向，决定了所读所写的字符是单字节还是多字节的，当一个流被创建时，它并没有定向，在流上使用多字节io函数，会把该流的定向设置为宽定向的，在未定向的流上使用一个单字节I/O函数，会把流的定向设置为字节定向的，
+
+```
+freopen 清除一个流的定向
+fwide 用于设置流的定向，并且fwide不改变已定向流的定向，并且fwide无出错返回。
+```
+
+#### 缓冲
+
+标准I/O提供了三种类型的缓冲：
+
+- 全缓冲，在填满标准I/O缓冲区才进行实际I/O操作。
+- 行缓冲，当输入和输出遇到换行符时，标准I/O库执行I/O操作（比如printf函数），另外，由于标准io中行缓冲区的长度是固定的，只要填满了缓冲区，即使没有换行符也会进行io操作；还有一点，**任何时候，只要通过标准io从一个不带缓冲区的流或一个行缓冲的流（它从内核请求需要数据）得到输入数据，那么就会冲洗所有行缓冲输出流**（加粗的这句话，不太理解）。
+- 不带缓冲，标准I/O库不对字符进行缓冲存储（比如标准错误流stderr是不带缓冲的，可以使得出错信息尽快显示出来）
+
+[缓冲区参考链接](https://blog.csdn.net/zhangxiao93/article/details/70666125)
+
+#### fopen& fclose
+
+fopen:打开文件，成功返回FILE对象，否则返回NULL，并且会设置errno，但是errno是一个全局的，如果不立即取出来，就会被后面的程序给覆盖，errno就是一个整型变量。这是最开始的定义，errno一开始是一个串，现在已经是一个宏了, apue上有提到这内容，叫线程私有化。
 
 验证：
 
@@ -1954,7 +1977,25 @@ errno;
 
 在`/usr/include/asm-generic/errno-base.h`里面有错误码
 
+#### fopen
+
 fopen打开模式，r，w，a，除了这个以外，还有个b，这个是在windows下会进行区分，就是把文件以二进制流进行处理，还是以字符流进行处理。但是在linux都是以二进制流进行处理，所以可以忽略。
+
+fopen 打开模式（mode）：
+
+- r 以只读形式打开，文件不存在，会出错，stream会定位到文件开始处。
+
+- r+ 以读写形式打开，文件不存在，会出错，stream会定位到文件开始处。
+
+- w 以只写形式打开，无则创建，有则清空，stream会定位到文件结尾处。
+
+- w+ 以读写形式打开，无则创建，有则清空，stream会定位到文件结尾处。
+
+  w 和w+的区别是，以w+打开的流，还可以继续读取，但是以w打开的，不支持读取。
+
+- a 以追加形式打开文件，文件不存在会创建，stream会定位到文件末尾处。
+
+- a+ 以读和追加形式打开文件，文件不存在会创建，如果是读文件，最开始的文件位置指针是在文件开始处，如果是写文件，文件位置指针会在文件末尾处。
 
 ```
 #include <stdio.h>
@@ -1979,13 +2020,13 @@ int main(){
 
 当打开文件失败时会提示错误信息。这里使用了两个函数[perror和strerror](https://blog.csdn.net/luseysd/article/details/120081009)。
 
-
+strerror的头文件是string.h。
 
 fopen返回的File指针存放在**堆里**，并没有存放在栈里或者静态区里。
 
 fopen在一个进程里能打开的文件是有限制的。
 
-在不更改当前默认环境的话，一个进程默认打开了三个流，stdin、stdout、stderr,能够打开的文件是1024。
+在不更改当前默认环境的话，一个进程默认打开了三个流，stdin、stdout、stderr（这三个文件指针定义在stdio.h中）,能够打开的文件是1024。
 
 下面这段代码时输出结果是1021。
 
@@ -2013,15 +2054,21 @@ int main(){
 }
 ```
 
+fclose
+
+关闭文件流，成功返回0， 失败返回EOF。一般不对返回结果进行校验。
+
 创建文件权限 0666 & ~umask
 
 第一个0表示是8进制数。
 
-### fgetc&fputc
+
+
+#### fgetc&fputc
 
 fgetc 和getc是相同的，只不过getc是被定义成宏，而fgetc被定义成函数。
 
-Fputc 和fputc是类似的。
+fputc 和putc是类似的。
 
 小练习实现mycp命令，类似cp。
 
@@ -2069,7 +2116,7 @@ int main(int argc, char ** argv){
 }
 ```
 
-### fgets&fputs
+#### fgets&fputs
 
 gets有bug，使用fgets代替。
 
@@ -2096,7 +2143,7 @@ fputs将特定的串输出指定的流里去。
 
 小练习，使用fgets实现mycp的功能
 
-### fread&fwrite
+#### fread&fwrite
 
 ```
 size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
@@ -2155,7 +2202,7 @@ int main(int argc, char ** argv){
 }
 ```
 
-### fseek&ftell&rewind
+#### fseek&ftell&rewind
 
 里面的参数是long，很丑，这两个函数当文件大小超过2G可能会有问题。
 
@@ -2165,11 +2212,13 @@ int main(int argc, char ** argv){
 
 ![image-20230923152147631](note.assets/image-20230923152147631.png)
 
+![image-20231014150909337](note.assets/image-20231014150909337.png)
+
 rewind 直接把文件指针返回到文件首。
 
 示例：求一个文件的长度。
 
-### fflush
+#### fflush
 
 刷新缓冲区，可以指定流，当不指定流的时候，会把所有的打开的流，都进行刷新。
 
@@ -2219,7 +2268,7 @@ int main(){
 
 setvbuf可以修改缓冲模式。
 
-### getline
+#### getline
 
 获取一行，在视频里需要添加一个宏定义，
 
@@ -2491,7 +2540,7 @@ int add_char_to_linebuf1(char * linebuf, uint32_t * linesize, int ch){
 }
 ```
 
-### 临时文件
+#### 临时文件
 
 两个问题：1、创建文件不冲突。2、创建文件及时销毁。
 
@@ -2507,7 +2556,7 @@ fd：在文件IO中贯穿始终的类型。
 
 ![image-20230925084948436](note.assets/image-20230925084948436.png)
 
-下面这张图是在一个进程空间内，如果有另外一个进程打开同一个文件，会创建同一个结构体。
+下面这张图是在一个进程空间内，如果有另外一个进程打开同一个文件，会创建同一个结构体（另外一个进程会有一个类似的数组，然后一个描述符指向文件。）, 这里的结构体类似FILE * 的对象。inode 表示文件。
 
 ![image-20230925085617552](note.assets/image-20230925085617552.png)
 
@@ -2541,9 +2590,418 @@ ioctl（）
 
 /dev/fd 目录
 
+#### open&close
+
+[参考链接](https://blog.csdn.net/weixin_43215126/article/details/88053301)
+
+[参考链接2](https://blog.csdn.net/weixin_28077113/article/details/117182043)
+
+int open(const char *pathname, int flags);
+
+// 创建文件，使用三参的函数
+
+int open(const char *pathname, int flags, mode_t mode);
+
+比如：
+
+```
+以只写打开文件，或者新建文件，文件存在就清空，创建文件的时候，指定文件的权限。
+dfd=open(argv[2],O_WRONLY|O_CREAT,O_TRUNC, 0600)
+```
+
+flags必须包含：O_RDONLY, O_WRONLY, or O_RDWR
+
+另外零个或多个文件的创建选项或者状态选项可以按照按位或的形式放到flags。
+
+编译的时候，加上all warning。
+
+O_TRUNC 清空文件
+
+O_APPEND 追加文件
+
+O_EXCL 文件必须是没有创建的，文件已经存在就会有问题。
+
+![image-20231014153141815](note.assets/image-20231014153141815.png)
+
+示例demo：
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+int main(){
+    // 写这个是为了测试open 的参数
+    //int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 这种方式并没有清空文件
+    int fd = open("test2.txt", O_WRONLY|O_CREAT, O_TRUNC, 0600);
+    
+    char * s= "Hello, world!";
+    int len= strlen(s);
+    int ret;
+    ret= write(fd, s, len);
+    fprintf(stdout, "read len:%d, ret:%d", len,ret);
+    close(fd);
+    exit(0);
+}
+```
+
+![image-20231015113218396](note.assets/image-20231015113218396.png)
+
+创建的test1.txt，我的期望是没有就创建新的，有就清空，是符合预期的，但是按照视频里也就是创建test2.txt的那种方式创建文件，是有问题的，文件并没有清空，而且文件的访问权限也很奇怪。T表示可以删除这个文件。[参考链接](https://bbs.huaweicloud.com/blogs/218469)，也就是说，创建这个文件的时候，其对应的权限设置使用的是O_TRUNC对应的值，所以才有问题。 
+
+#### 文件IO（系统IO）与标准IO的区别
+
+区别：响应速度：标准IO快，吞吐量：文件IO快。
+
+注意：标准IO和文件IO不可混用。
+
+转换：fileno和fdopen
+
+FILE* 对象里的pos 和fd中的position的是不一致的。
+
+![image-20230925085822273](note.assets/image-20230925085822273.png)
+
+strace 命令可以查看可执行文件的执行过程。
+
+比如下面这段代码：
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+int main(){
+    putchar('a');
+    //往标准输出写入内容
+    write(1, "b", 1);
+    putchar('a');
+    //往标准输出写入内容
+    write(1, "b", 1);
+    putchar('a');
+    //往标准输出写入内容
+    write(1, "b", 1);
+    exit(0);
+}
+```
+
+![image-20231015133800801](note.assets/image-20231015133800801.png)
+
+从上面这张图可以看出来，是先输出bbb，然后再输出aaa，可以用strace 命令查看执行过程，从下图可以看出，putchar是标准io，写入，实际上先写入到了缓冲区，最后再一次性调用了write，进行写入的。
+
+![image-20231015133905735](note.assets/image-20231015133905735.png)
+
+#### IO效率问题
 
 
 
+time 命令，测试执行时间
+
+![image-20231015143724520](note.assets/image-20231015143724520.png)
+
+![image-20231015145033079](note.assets/image-20231015145033079.png)
+
+从下面的数据看，缓冲区在4M的时候，就出现了性能拐点。8M的时候，出现了core dump。出现这个问题的原因，是因为linux 默认把栈空间的大小设置为了8M，所以出错了。
+
+| bufSize | real    | user   | sys     |
+| ------- | ------- | ------ | ------- |
+| 1k      | 12.170s | 1.347s | 10.799s |
+| 10k     | 4.801s  | 0.139s | 3.150s  |
+| 100K    | 3.723s  | 0.019s | 3.072s  |
+| 1M      | 2.834s  | 0.004s | 2.757s  |
+| 2M      | 2.110s  | 0.000s | 2.090s  |
+| 4M      | 2.644s  | 0.013s | 2.180s  |
+| 8M      |         |        |         |
+
+#### 文件共享：多个任务共同操作一个文件，或者协同完成任务。
+
+面试：写程序删除一个文件的第10行
+
+简单的一种方式是在一个进程内，同时打开一个文件，得到两个文件描述符，一个用来读，一个用来写，最后修改文件长度。
+
+也可以用两个进程。
+
+![image-20231015145609660](note.assets/image-20231015145609660.png)
+
+修改文件长度使用的函数是：truncate/ftruncate
+
+#### 原子操作：不可分割的操作
+
+原子：不可分割的最小单位
+
+原子操作的作用：解决竞争和冲突
+
+#### 程序中的重定向dup，dup2
+
+puts 函数 会往标准输出里写入内容，现在希望puts将内容写入到文件里。
+
+可以先将stdout给关闭，然后重新创建一个文件描述符，这个时候，会优先使用最小的，描述符就会是1。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#define  FNAME "/tmp/out"
+int main(){
+    // 把hello 输出到某个文件里。
+    int fd;
+    close(1);
+    fd =open(FNAME,O_WRONLY|O_TRUNC|O_CREAT,0600);
+    if (fd<0) {
+        perror("open()");
+        exit(1);
+    }
+// 往标准输出里输出hello
+    puts("hello!");
+    exit(0);
+}
+```
+
+dup2 复制文件描述符
+
+```
+int dup2(int oldfd, int newfd);
+```
+
+是一个原子化操作，复制一个新的文件描述符，如果新的文件描述符和原来的一样，就不进行操作。
+
+#### 同步：sync、fsync、fdatasync
+
+sync: 解除设备挂载的时候，同步内核层面缓存的数据刷到磁盘里。
+
+fsync：同步一个文件的buffer
+
+fdatasync：只刷文件的数据，不刷亚数据（比如修改文件时间）
+
+#### fcntl：文件描述符所变的魔术几乎都来源于该函数
+
+```
+int fcntl(int fd, int cmd, ... /* arg */ );
+```
+
+#### ioctl 设备相关的内容
+
+#### /dev/fd/目录：虚目录，显示的是当前进程的文件描述符信息
+
+### 文件系统
+
+类似 ls的实现，如myls
+
+这涉及到深入理解计算机的知识。
+
+#### 目录和文件
+
+##### 1、获取文件属性
+
+```
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+int stat(const char *pathname, struct stat *buf);
+int fstat(int fd, struct stat *buf);
+int lstat(const char *pathname, struct stat *buf);
+```
+
+获取文件长度
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+static off_t flen(const char * fname){
+    struct stat statres;
+    if (stat(fname, & statres)<0) {
+        perror("stat()");
+        exit(1);
+    }
+    return statres.st_size;
+
+}
+int main(int argc, char ** argv){
+    if (argc<2) {
+        fprintf(stderr, "Ussage ...\n");
+        exit(1);
+    }
+    // off_t 不知道是多少位，所以使用强转，或者在makefile里，设置off_t 64位。
+    printf("%lld\n",(long long)flen(argv[1]));
+    exit(0);
+}
+```
+
+运行结果
+
+![image-20231017091433038](note.assets/image-20231017091433038.png)
+
+上面用到了off_t 类型的变量，可以使用tags工具查看它是如何自定义的。
+
+安装到/usr/include目录下。
+
+[空洞文件](https://banbanpeppa.github.io/2019/08/21/linux/holefile/)
+
+制造空洞文件的代码如下：
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+int main(int argc, char **argv){
+    if (argc<2) {
+        fprintf(stderr, "Usage ... \n");
+        exit(1);
+    }
+   int  fd = open(argv[1], O_WRONLY | O_CREAT|O_TRUNC,0600);
+   if (fd <0) {
+    perror("open()");
+    exit(1);
+   }
+   // 应该判断lseek的返回值，会有整型溢出，把变量提升为long型
+   lseek(fd,5LL*1024*1024*1024-1, SEEK_SET);
+   write(fd, "", 1);
+   close(fd);
+   exit(0);
+}
+```
+
+![image-20231018085233436](note.assets/image-20231018085233436.png)
+
+![image-20231018083802919](note.assets/image-20231018083802919.png)所以st_size 只是表示文件的逻辑大小，并不是它真正占的存储空间，可以看到/tmp/bigfile /tmp/bigfile.bak，/tmp/bigfile.bak 是用cp命令拷贝来的，和视频上有一点不一样，视频里bigfile.bak大小是0，这里还是4k，估计是因为内核不一样。但是为啥空洞文件大小是4k，是因为，linux默认一个块大小是4k，所以文件大小才是4k。磁盘的扇区是512字节，而在linux中，文件读取的基本单位是以块为单位，linux块的单位是4096字节。
+
+##### 2、文件访问权限
+
+```
+mode_t    st_mode; // 就是stat结构体里的内容，表示文件的权限,以位图的形式存储，是一个16位的位图，用于表示文件类型，文件访问权限，及特殊权限位。
+
+文件类型：dcb-lsp
+
+```
+
+下面截图里的红色部分就是文件权限
+
+![image-20231018213754980](note.assets/image-20231018213754980.png)
+
+判断文件类型有两种方式：
+
+1、使用预先定义好的宏，类似下面这种
+
+```
+if (S_ISREG(statres.st_mode)) {
+        return '-';
+    }else if (S_ISDIR(statres.st_mode)) {
+        return 'd';
+    }else if (S_ISCHR(statres.st_mode)) {
+        return 'c';
+    }else if (S_ISBLK(statres.st_mode)) {
+        return 'b';
+    }else {
+        return '?';
+    }
+```
+
+2、使用按位与的方式，
+
+```
+S_IFMT     0170000   bit mask for the file type bit field
+
+           S_IFSOCK   0140000   socket
+           S_IFLNK    0120000   symbolic link
+           S_IFREG    0100000   regular file
+           S_IFBLK    0060000   block device
+           S_IFDIR    0040000   directory
+           S_IFCHR    0020000   character device
+           S_IFIFO    0010000   FIFO
+
+       Thus, to test for a regular file (for example), one could write:
+
+           stat(pathname, &sb);
+           if ((sb.st_mode & S_IFMT) == S_IFREG) {
+               /* Handle regular file */
+           }
+```
+
+##### 3、umask
+
+ 作用，防止产生权限过松的问题。	
+
+4、文件权限的更改/管理
+
+ chmod fchmod
+
+5、粘住位
+
+  t位，[参考链接](https://blog.csdn.net/qq_61932634/article/details/129189669)，设置了粘住位后，目录下可以创建文件，但是不能随意删除文件，除非你是
+
+​    1.root-超级用户
+
+​    2.目录拥有者
+
+​    3.文件拥有者
+
+##### 6、文件系统：FAT，UFS
+
+   文件系统：文件或数据的存储和管理。
+
+   FAT对大文件支持不友好。
+
+##### 7、硬链接，符号链接
+
+​	硬链接与目录项是同义词，且建立硬链接有限制：不能给分区建立，不能给目录建立，符号链接优点：可跨分区，可以给目录建立。
+
+[https://www.runoob.com/note/29134](https://www.runoob.com/note/29134)
+
+​	link
+
+​	unlink
+
+​	remove
+
+​	rename
+
+##### 8、utime
+
+​	修改文件的最终读的时间和最后修改的时间。
+
+##### 9、目录的创建和销毁
+
+​	mkdir
+
+​	rmdir
+
+##### 10、更改当前工作路径
+
+​	chdir
+
+​	fchdir
+
+​	getcwd 获取当前工作路径。	
+
+##### 11、分析目录/读取目录内容
+
+- glob()：查找文件系统中指定模式的路径
+
+- opendir()
+
+- readdir()
+
+- rewinddir()
+- seekdir()
+- telldir()
+
+
+
+#### 系统数据文件和信息
+
+#### 进程环境
 
 # 用过的c语言知识
 

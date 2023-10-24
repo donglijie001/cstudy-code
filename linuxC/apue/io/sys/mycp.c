@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#define  BUF_SIZ__ 1024
+#define  BUF_SIZ__ 1024*1024*8
 int main(int argc,char ** argv){
     if (argc<3) {
         fprintf(stderr, "Usage%s <src_file> <dest_file>\n",argv[0]);
@@ -19,7 +19,7 @@ int main(int argc,char ** argv){
         exit(1);
     }
     // 文件存在就以只写打开，否则就创建，如果文件以只写打开，就把文件截断（通过O_TRUNC 来指定)。
-    dfd=open(argv[2],O_WRONLY|O_CREAT,O_TRUNC, 0600);
+    dfd=open(argv[2],O_WRONLY|O_TRUNC|O_CREAT, 0600);
     if (dfd<0) {
         // 源文件已经打开了，这个时候需要关闭
         close(sfd);
