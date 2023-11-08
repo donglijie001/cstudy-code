@@ -12,6 +12,16 @@ rsync -av /Users/donglijie/Desktop/selfLearning/cstudy-code donglijie@192.100.21
 
 [标准c和gnuc](https://blog.csdn.net/goodshanzi/article/details/119454523)
 
+# 疑问
+
+readdir 是不可重入的，返回结果存储在静态区，这个是如何得出来的。
+
+[参考链接](https://zyfjeff.github.io/%E5%8D%9A%E5%AE%A2/doc/linux/Linux%E4%BF%A1%E5%8F%B7%E4%B8%93%E9%A2%98FAQ/)
+
+可以打开多个目录，看一下结果是否正确，因为静态区只初始化一次，如果打开多次，第一次打开的访问就会有问题，可以写代码验证一下。
+
+这个可能需要把信号给学了才知道。
+
 # C基本内容
 
 ## 1 学习方法和基本概念简单介绍
@@ -1252,6 +1262,8 @@ struct 结构体名{
 	......
 }
 ```
+
+如果是结构体的普通变量，就需要用malloc申请内存，如果是指针变量就需要申请内存。
 
 ### 3、嵌套定义
 
@@ -2806,6 +2818,9 @@ int fcntl(int fd, int cmd, ... /* arg */ );
 int stat(const char *pathname, struct stat *buf);
 int fstat(int fd, struct stat *buf);
 int lstat(const char *pathname, struct stat *buf);
+stat：通过文件路径获取属性，面对符合链接时获取的是所指向目标文件的属性
+fstat：通过文件描述符获取属性
+lstat：面对符号链接文件时获取的是符号链接文件的属性
 ```
 
 获取文件长度
@@ -2876,6 +2891,10 @@ int main(int argc, char **argv){
 ![image-20231018085233436](note.assets/image-20231018085233436.png)
 
 ![image-20231018083802919](note.assets/image-20231018083802919.png)所以st_size 只是表示文件的逻辑大小，并不是它真正占的存储空间，可以看到/tmp/bigfile /tmp/bigfile.bak，/tmp/bigfile.bak 是用cp命令拷贝来的，和视频上有一点不一样，视频里bigfile.bak大小是0，这里还是4k，估计是因为内核不一样。但是为啥空洞文件大小是4k，是因为，linux默认一个块大小是4k，所以文件大小才是4k。磁盘的扇区是512字节，而在linux中，文件读取的基本单位是以块为单位，linux块的单位是4096字节。
+
+[stat命令block字段解释](https://blog.csdn.net/qq_42759112/article/details/126249990)
+
+使用stat命令展示文件，block就是512字节构成的块的个数。
 
 ##### 2、文件访问权限
 
@@ -2987,21 +3006,1013 @@ S_IFMT     0170000   bit mask for the file type bit field
 
 ##### 11、分析目录/读取目录内容
 
-- glob()：查找文件系统中指定模式的路径
-
+- glob()：查找文件系统中指定模式的路径,解析模式或者通配符。
 - opendir()
-
 - readdir()
-
 - rewinddir()
 - seekdir()
 - telldir()
 
-
+du 不带任何参数，显示的当前目录所占的字节数，以k为单位。
 
 #### 系统数据文件和信息
 
+##### 1、/etc/passwd
+
+注：并不是所有的系统都有/etc/passwd这个文件。
+
+getpwuid()
+
+getpwnam()
+
+##### 2、 /etc/group
+
+getgrgid()
+
+getgrgrname()
+
+##### 3、/etc/shadow 
+
+getspnam()
+
+crypt()
+
+getpass()
+
+##### 4、时间戳
+
+time():返回从1970年1月1日0点0分0秒的时间，以秒为单位
+
+gmtime()
+
+localtime()
+
+mktime()
+
+strftime()
+
 #### 进程环境
+
+##### 1、main函数
+
+​	int main(int argc, char ** argv)
+
+##### 2、进程的终止
+
+- 正常终止：
+
+  - 从main函数返回
+
+  - 调用exit
+
+  - 调用_exit 或\_Exit（这个是系统调用）
+
+    exit和_exit区别，\_exit执行时不会执行钩子函数以及释放资源
+
+    ​	只有当出错的时候，才应该用\_exit，不刷新资源，避免故障扩大。
+
+
+  - 最后一个线程从其启动例程返回
+
+  - 最后一个线程调用pthread_exit
+
+- 异常终止：
+  - 调用abort
+  - 接到一个信号并终止
+  - 最后一个线程对其取消请求作出响应
+
+atexit（）：钩子函数，进程正常终止的时候会被调用,on_exit 也是钩子函数
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+static void f1(void ){
+    puts("f1() is working1");
+}
+static void f2(void ){
+    puts("f2() is working1");
+}
+static void f3(void ){
+    puts("f3() is working1");
+}
+int main(){
+    puts("Begin");
+   	// 下面只是注册了钩子函数，不会立刻执行
+    atexit(f1);
+    atexit(f2);
+    atexit(f3);
+    puts("End");
+    exit(0);
+
+}
+```
+
+运行结果：
+
+![image-20231027090900421](note.assets/image-20231027090900421.png)
+
+钩子函数的执行顺序是跟钩子函数的注册顺序相反。
+
+##### 3、命令行参数的分析
+
+- getopt()
+- getopt_long()
+
+##### 4、环境变量
+
+   environ 是一个全局的环境变量，是一个字符数组。char** environ，类似argv
+
+   getenv() 
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(){
+    puts(getenv("PATH"));
+    exit(0);
+}
+```
+
+   setenv()：里面有一个参数表示是否覆盖，设置环境变量的时候，会重新申请一块内存，覆盖原来的。
+
+   putenv()
+
+##### 5、C程序的存储空间布局
+
+[参考链接](https://cloud.tencent.com/developer/article/1825840)，感觉有很多没有知识都不懂，还是得接着学习。
+
+getenv 代码
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(){
+    puts(getenv("PATH"));
+    getchar();
+    exit(0);
+}
+```
+
+编译运行：
+
+![image-20231028161130748](note.assets/image-20231028161130748.png)
+
+然后再打开一个终端
+
+![image-20231028161655422](note.assets/image-20231028161655422.png)
+
+![image-20231028161927432](note.assets/image-20231028161927432.png)
+
+##### 6、库
+
+- 动态库
+
+- 静态库
+
+- 手工装载库（比如开机启动时的ftp服）
+
+  - dlopen
+
+  - dlclose
+
+  - dlerror
+
+    
+
+##### 7、函数跳转
+
+goto 不支持跨函数跳转。
+
+setjmp
+
+longjmp
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+static void d(void){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+static void c(void){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Call d().\n", __FUNCTION__);
+    d();
+    printf("%s():d() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+static void b(void){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Call c().\n", __FUNCTION__);
+    c();
+    printf("%s():c() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+static void a(void){
+    int ret;
+    printf("%s():Begin.\n", __FUNCTION__);
+   
+    printf("%s():Call b().\n", __FUNCTION__);
+    b();
+    printf("%s():b() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+int main(){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Call a().\n", __FUNCTION__);
+    a();
+    printf("%s():a() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+```
+
+运行结果：
+
+```
+donglijie@ubuntu:fs$ ./jmp 
+main():Begin.
+main():Call a().
+a():Begin.
+a():Call b().
+b():Begin.
+b():Call c().
+c():Begin.
+c():Call d().
+d():Begin.
+d():End.
+c():d() returned.
+c():End.
+b():c() returned.
+b():End.
+a():b() returned.
+a():End.
+main():a() returned.
+main():End.
+```
+
+从上面可以看出就是正常的main->a->b->c->d
+
+接下来在a里面设置跳转点，然后在d里面设置返回。 
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <setjmp.h>
+static jmp_buf save;
+static void d(void){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Jump now\n",__FUNCTION__);
+    // 跳转到跳转点save，并设置返回值6
+    longjmp(save,6);
+    printf("%s():End.\n", __FUNCTION__);
+}
+static void c(void){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Call d().\n", __FUNCTION__);
+    d();
+    printf("%s():d() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+static void b(void){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Call c().\n", __FUNCTION__);
+    c();
+    printf("%s():c() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+static void a(void){
+    int ret;
+    
+    printf("%s():Begin.\n", __FUNCTION__);
+    ret =setjmp(save);
+    if (ret ==0) {
+        // 返回值为0，说明是设置挑
+        printf("%s():Call b().\n", __FUNCTION__);
+        b();
+        printf("%s():b() returned.\n", __FUNCTION__);
+    }else {
+        // 跳转回来
+        printf("%s():Jumped back here with code:%d\n",__FUNCTION__, ret );
+    }
+    
+    printf("%s():End.\n", __FUNCTION__);
+}
+int main(){
+    printf("%s():Begin.\n", __FUNCTION__);
+    printf("%s():Call a().\n", __FUNCTION__);
+    a();
+    printf("%s():a() returned.\n", __FUNCTION__);
+    printf("%s():End.\n", __FUNCTION__);
+}
+```
+
+运行结果：
+
+```
+main():Begin.
+main():Call a().
+a():Begin.
+a():Call b().
+b():Begin.
+b():Call c().
+c():Begin.
+c():Call d().
+d():Begin.
+d():Jump now
+a():Jumped back here with code:6
+a():End.
+main():a() returned.
+main():End.
+```
+
+
+
+##### 8、资源的获取及控制
+
+- getrlimit()
+
+- setrlimit() 
+
+```
+struct rlimit {
+               rlim_t rlim_cur;  /* Soft limit */
+               rlim_t rlim_max;  /* Hard limit (ceiling for rlim_cur) */
+           };
+```
+
+// 普通用户不能升高硬限制，root可以升高也可以降低硬限制
+
+硬限制是可以获取资源的上限。
+
+## 进程
+
+### 进程基本知识
+
+#### 1、进程标识符pid
+
+- 类型pid_t 传统意义上是有符号的16位整形数，但具体每个机器上占多少位，是不确定的，如果想看，可以将pid_t转成long long类型进行输出。
+- ps 命令：ps axf ,ps axm ,ps ax -L
+- 进程号是顺次向下使用（和文件描述符不同）
+- getpid()：获取当前进程号
+- getppid():获取当前进程的父进程号
+
+#### 2、进程的产生
+
+- fork()
+
+  注意理解关键字：duplicating，意味着拷贝，克隆，一模一样等含义
+
+  fork后父子进程的区别：fork的返回值不一样，pid不同，ppid也不同，未决信号和文件锁不继承，资源利用量清0.
+
+  init进程：pid 是1，是所有进程的祖先进程，
+
+  fork()返回值，成功会给父进程返回子进程pid，给子进程返回0，如果失败的话，会给父进程返回-1，同时不会创建子进程，然后设置errno。
+
+  调度器的调度策略来决定哪个进程先运行。
+
+  fflush的重要性，在fork之前，要刷新缓冲区。
+
+- vfork(): 即将消失
+
+demo:
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main(){
+    pid_t pid;
+    printf("[%d]:Begin!\n", getpid());
+    pid = fork();
+    if (pid<0) {
+       perror("fork()");
+       exit(1);
+    }
+    if (pid ==0) {
+        printf("[%d]:Child is working!\n", getpid());
+
+    }else {
+        printf("[%d]:Parent is working!\n", getpid());
+        
+    }
+
+    printf("[%d]:End!\n", getpid());
+
+    exit(0);
+}
+```
+
+运行结果：
+
+1496 是父进程，1497 是子进程。
+
+![image-20231029123613034](note.assets/image-20231029123613034.png)
+
+上面这段代码实际上是有问题的，比如我们把输出的结果重定向到缓冲区
+
+![image-20231029133601984](note.assets/image-20231029133601984.png)
+
+就会在文件里打印两个begin语句。
+
+原因是因为未刷新缓冲区，当重定向以后，就会缓冲模式就会变成全缓冲，fork以后，父进程和子进程的缓冲区里，就都会有begin这句话，所以才会打印两个begin，因此在fork之前，一定要刷新缓冲区。[参考链接](https://blog.csdn.net/fhp123/article/details/119805361)
+
+> 在linux系统中，系统内核也有个缓冲区叫做内核缓冲区。每个进程有自己独立的缓冲区，叫做进程缓冲区。
+
+修改后的代码：
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main(){
+    pid_t pid;
+    printf("[%d]:Begin!\n", getpid());
+    fflush(NULL);// 一定要有这行，要刷新缓冲区，
+    pid = fork();
+    if (pid<0) {
+       perror("fork()");
+       exit(1);
+    }
+    if (pid ==0) {
+        printf("[%d]:Child is working!\n", getpid());
+
+    }else {
+        printf("[%d]:Parent is working!\n", getpid());
+        
+    }
+
+    printf("[%d]:End!\n", getpid());
+
+    exit(0);
+}
+```
+
+第二个demo，求质数
+
+第一个版本
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#define LEFT 30000000
+#define RIGHT 30000200
+int main(){
+
+    for (int i=LEFT; i<=RIGHT; i++) {
+        int mark=1;
+        for (int j =2; j<i/2; j++) {
+            if (i%j==0) {
+                mark=0;
+                break;
+            }
+        }
+        if (mark) {
+            printf("%d is a primer\n", i);
+        }
+    }
+
+    exit(0);
+}
+```
+
+单进程执行耗时：
+
+![image-20231029153508774](note.assets/image-20231029153508774.png)
+
+第二版fork多进程执行。
+
+这段代码有问题，会导致系统崩溃，原因是子进程计算结束后，没有正常退出。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#define LEFT 30000000
+#define RIGHT 30000200
+int main(){
+    pid_t pid;
+    for (int i=LEFT; i<=RIGHT; i++) {
+        int mark=1;
+        // 创建一个新的进程
+        pid = fork();
+        if (pid<0) {
+            // 创建进程失败，直接结束。
+            perror("fork()");
+            exit(1);
+        }else if (pid ==0) {
+            // 子进程
+            for (int j =2; j<i/2; j++) {
+                if (i%j==0) {
+                    mark=0;
+                    break;
+                }
+            }
+            if (mark) {
+                printf("%d is a primer\n", i);
+            }
+            // 一定要加上这个，否则会有问题，
+            exit(0);
+        }
+    
+    }
+
+    exit(0);
+}
+```
+
+运行结果：
+
+![image-20231029155417141](note.assets/image-20231029155417141.png)
+
+如果在子进程里加上一个sleep语句。
+
+<img src="note.assets/image-20231029161728785.png" alt="image-20231029161728785" style="zoom:50%;" />
+
+打开另外一个终端，可以看到这些sleep的进程都顶格写，说明它们的父进程都变成了init进程。
+
+![image-20231029161949496](note.assets/image-20231029161949496.png)
+
+换一种方式，在父进程里sleep。运行结果如下，可以看到这些子进程都变成了僵尸进程。
+
+![image-20231029163137113](note.assets/image-20231029163137113.png)
+
+vfork():创建的进程只能执行_exit函数或exec函数族里的函数。
+
+fork写时拷贝：一开始创建一个子进程的时候，父进程和子进程里面的一些资源会指向同一份数据，只有当父进程或者子进程需要进行写的时候，才会创建一个新的副本。[参考链接](https://blog.csdn.net/weixin_45030965/article/details/124035512)
+
+#### 3、进程的消亡及释放资源
+
+- wait()
+- waitpid()
+- waitid
+- wait3
+- wait4
+
+最后两个是freebsd的方言，暂时先跳过。
+
+然后修改一下上面求质数的代码
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#define LEFT 30000000
+#define RIGHT 30000200
+int main(){
+    pid_t pid;
+    for (int i=LEFT; i<=RIGHT; i++) {
+        int mark=1;
+        // 创建一个新的进程
+        pid = fork();
+        if (pid<0) {
+            // 创建进程失败，直接结束。
+            perror("fork()");
+            exit(1);
+        }else if (pid ==0) {
+            // 子进程
+            for (int j =2; j<i/2; j++) {
+                if (i%j==0) {
+                    mark=0;
+                    break;
+                }
+            }
+            if (mark) {
+                printf("%d is a primer\n", i);
+            }
+        
+            exit(0);
+        }
+    
+    }
+    // int st;
+    for (int i=LEFT; i<=RIGHT; i++) {
+        wait(NULL);
+    }
+    exit(0);
+}
+```
+
+三个版本程序的执行时间如下图，primer2是加了wiat的多进程代码，primer1是多进程代码，没有加wait，而primer0是单进程代码。
+
+![image-20231029193626353](note.assets/image-20231029193626353.png)
+
+求质数的这个代码只会创建201个子进程进行处理，但是当要求的区间比较大的时候，比如一千或者一万甚至十万，就会有问题，因为不一定能创建出来这么多子进程，所以需要进行调整，比如，指定N的子进程去处理这些任务。使用交叉分配法，
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#define LEFT 30000000
+#define RIGHT 30000200
+#define N 3
+int main(){
+    pid_t pid;
+    for (int n=0;n<N; n++) {
+        pid = fork();
+        if (pid<0) {
+            perror("fork()");
+            //要加上等待已经成功创建的进程的释放逻辑。
+            exit(1);
+        }
+        if (pid ==0) {
+            for (int i=LEFT+n; i<=RIGHT; i+=N) {
+                int mark=1;
+                for (int j =2; j<i/2; j++) {
+                    if (i%j==0) {
+                        mark=0;
+                        break;
+                    }
+                }
+                if (mark) {
+                    printf("[%d]%d is a primer\n",n, i);
+                }
+             }
+        exit(0);
+        }
+    }
+    
+    // int st;
+    for (int i=0; i<N; i++) {
+        // 释放创建的子进程
+        wait(NULL);
+    }
+    exit(0);
+}
+```
+
+上面的这段代码，实际执行的时候也会有问题，比如某个特定的继承，永远也输出不了数据。
+
+![image-20231029221551571](note.assets/image-20231029221551571.png)
+
+
+
+#### 4、exec函数族
+
+上面的primer2 执行时对应的进程关系如下图：
+
+<img src="note.assets/image-20231029222511329.png" alt="image-20231029222511329" style="zoom:50%;" />
+
+可能存在的疑问：
+
+```
+1、bash创建了primer2，那为啥fork出来的子进程，不是bash，而是最开始的primer进程。
+
+2、为何shell创建的子进程不是shell，而是primer2
+```
+
+exec函数族：用一个新的进程image 替换当前的进程image
+
+- execl()： 变参终止条件，NULL结尾，用这几个函数，最后一个参数都要传NULL。
+
+- execlp()
+
+- execlp
+
+- execv
+
+- execvp
+
+  注意fflush
+
+示例代码：
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+extern char **environ;
+/**
+ * 实现date 
+ * 
+ * @return int 
+ */
+int main(){
+    puts("Begin");
+    execl("/bin/date", "date", "+%s", NULL);
+    // 这里没有加返回值的判断，是因为，如果execl执行成功，就再也不会执行下面的逻辑了
+    perror("execl()");
+    exit(1);
+    puts("End");
+    exit(0);
+}
+```
+
+运行结果：输出了begin，以及对应的时间。
+
+![image-20231030225257035](note.assets/image-20231030225257035.png)
+
+但是如果重定向到文件：begin没有输出。
+
+![image-20231030225452688](note.assets/image-20231030225452688.png)
+
+加上fflush后
+
+![image-20231030225711117](note.assets/image-20231030225711117.png)
+
+上面这段代码还是有一些问题，它会把自己给变成别的进程，只是进程号没有改变，最好是一开始执行的时候，就变成别的进程，就相当于fork一个进程，exec执行，wait释放。
+
+示例代码：
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+extern char **environ;
+int main(){
+    puts("Begin");
+    // 刷新缓冲区
+    fflush(NULL);
+    pid_t pid;
+    pid = fork();
+    if (pid<0) {
+        perror("fork()");
+        exit(1);
+    }
+    if (pid==0) {
+        execl("/bin/date", "date", "+%s", NULL);
+        // execl替换进程出错
+        perror("execl()");
+        exit(1);
+    }
+    wait(NULL);
+    puts("End");
+    exit(0);
+}
+```
+
+比如在shell下执行一个命令：
+
+它的流程是，shell先fork一个子进程（这个时候子进程是shell），然后execl替换成要执行的子进程，shell就等待子进程执行结束（wait）。
+
+为什么父子进程会打印数据到同一个终端？
+
+父进程创建后，它会几个默认的文件描述符，0，1，2 指向特定的文件，fork子进程后，子进程继承父进程的文件描述符，0，1，2会指向同样的文件，所以公用一个文件描述符。所以父子进程会往同一个终端输出内容。
+
+实现一个sleep程序。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+extern char **environ;
+int main(){
+    puts("Begin");
+    // 刷新缓冲区
+    fflush(NULL);
+    pid_t pid;
+    pid = fork();
+    if (pid<0) {
+        perror("fork()");
+        exit(1);
+    }
+    if (pid==0) {
+        execl("/bin/sleep", "sleep", "100", NULL);
+        // execl替换进程出错
+        perror("execl()");
+        exit(1);
+    }
+    wait(NULL);
+    puts("End");
+    exit(0);
+}
+```
+
+查看进程关系图
+
+![image-20231031090211649](note.assets/image-20231031090211649.png)
+
+改一下excel中的argv[1]，进程间关系如下：
+![image-20231031090404540](note.assets/image-20231031090404540.png)
+
+实现一个mysh
+
+
+
+#### 5、用户权限及组权限
+
+uid 存储了三份：
+
+- real uid
+- effective uid
+- save uid
+
+```
+SUID（u+s）权限
+含义：为了让一般用户在执行某些程序的时候， 在程序的运行期间， 暂时获得该程序文件所属者的权限
+```
+
+[u+s参考](https://blog.csdn.net/weixin_62443409/article/details/129352731)
+
+鉴定权限的时候，是以effective权限在跑。
+
+这块看的不是特别懂，后续再看看吧。
+
+getuid() 获取真实的uid
+
+geteuid() 获取有效的uid
+
+getgid()
+
+getugid()
+
+setuid()
+
+setgid()
+
+setreuid()
+
+setregid()
+
+seteuid()
+
+setegid()
+
+mysu 示例代码
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+int main(int argc, char ** argv){
+    if (argc<3) {
+        fprintf(stderr, "Usage...\n");
+        exit(1);
+    }
+    pid_t pid = fork();
+    if (pid<0) {
+        // 创建子进程出错了
+        perror("fork()");
+        exit(1);
+    }
+    if (pid ==0) {
+        setuid(atoi(argv[1]));
+        execvp(argv[2], argv+2);
+        perror("execvp()");
+        exit(1);
+    }
+    wait(NULL);
+    exit(0);
+}
+```
+
+将文件编译后，需要将mysu 的拥有者改成root，然后再用chown u+s 给mysu加上权限，然后才可以执行。
+
+![image-20231102091450113](note.assets/image-20231102091450113.png)
+
+![image-20231102091513638](note.assets/image-20231102091513638.png)
+
+#### 6、观摩课：解释器文件
+
+就是脚本文件。
+
+7、system()
+
+system 就是fork一个子进程，通过shell执行命令。比如下面的demo：
+
+```
+#include<stdio.h>
+#include<stdlib.h>
+int main(){
+    system("date +%s > /tmp/out");
+    exit(0);
+}
+```
+
+运行结果如下：
+
+![image-20231105210912923](note.assets/image-20231105210912923.png)
+
+实际上就是fork exec wait
+
+#### 8、进程会计
+
+acct bsd的方言，了解即可。
+
+#### 9、进程时间
+
+times
+
+#### 10、守护进程
+
+- 会话 session 标识sid，会话是一个或者多个进程组的集合。
+- 终端
+
+<img src="note.assets/image-20231105222432315.png" alt="image-20231105222432315" style="zoom:50%;" />
+
+前台进程组：最多只有一个可以没有，可以接收标准的输入和输出
+
+后段进程组：可以有多个，（不能接收标准的输入和输出）
+
+setsid：如果当前调用该方法的进程不是一个进程组的leader，就会创建一个会话，调用该方法的进程会成为新会话的leader，会成为当前新的进程组的leader，并且脱离控制终端。（也就是说只有子进程可以调用，父进程不可以调用，因为父进程是子进程的leader）
+
+> ps axj:查看作业信息。
+
+![image-20231105223139681](note.assets/image-20231105223139681.png)
+
+pid和pgid 和sid会一样，都变成进程号。
+
+守护进程的ppid是1，pid pgid sid是相同的，TTY是问号，表示脱离控制终端。
+
+[进程组参考链接](https://blog.csdn.net/jinking01/article/details/126925313)
+
+[守护进程参考链接](https://www.cnblogs.com/mickole/p/3188321.html)
+
+- getpgrp()
+- getpgrp(pid_t pid)
+- getpgid
+- set-bid
+
+示例代码：
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#define FNAME "/tmp/out"
+static int  daemonize(){
+    int fd;
+    pid_t pid = fork();
+    if (pid<0) {
+        perror("fork()");
+        return -1;;
+    }
+    if (pid>0) {// parent
+        exit(0);
+    }
+    // 进程默认打开的文件描述符0 1 2 就不需要打开了，因此先进行重定向。
+    fd = open("/dev/null",O_RDWR);
+    if (fd<0) {
+        perror("open()");
+        return -1;
+    }
+    // 标准输入、输出、出错重定向到fd
+    dup2(fd, 0);
+    dup2(fd, 1);
+    dup2(fd, 2);
+    if (fd>2) {
+        // 关闭fd
+        close(fd);
+    }
+    setsid(); // 设置守护进程
+    // 把当前工作路径设置为根路径，如果守护进程是在某个设备上工作
+    // 如果设备umount可能会出问题，所以需要修改工作路径
+    chdir("/"); 
+    // 如果确定后续不会在产生文件，可以执行umask(0)
+    // umask(0)
+    return 0;
+
+}
+int main(){
+    FILE * fp;
+    if (daemonize()) {
+        // 失败了就直接结束
+        exit(1);
+    }
+    fp = fopen(FNAME, "w");
+    if (fp==NULL) {
+        perror("fopen()");
+        exit(1);
+    }
+    for (int i=0; i<1000; i++) {
+        fprintf(fp, "%d\n", i);
+        fflush(fp);
+        sleep(1);
+    }
+    exit(0);
+}
+```
+
+上面的代码，调用setuid 创建了一个守护进程，在此之前，把输入输出重定向了，但是还有一个问题，就是代码里出错的地方，都会打印到标准输出，但是守护进程已经脱离了终端，所以需要用到系统日志。
+
+![image-20231107091101121](note.assets/image-20231107091101121.png)
+
+#### 11、系统日志
+
+系统日志的目录在 /var/log 目录下
+
+只有syslogd才有写系统日志的能力，所有的程序把日志按指定格式提交到syslogd就可以了。
+
+- openlog:关联系统日志
+- syslog：
+- closely
+
+
 
 # 用过的c语言知识
 
