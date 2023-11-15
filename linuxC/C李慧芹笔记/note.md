@@ -1694,7 +1694,7 @@ NODE a; -> struct node_st a;
 typedef struct node_st *NODEP; // 不推荐这样用，因为定义变量的时候，看不出来对应的变量是不是指针变量
 NODEP p; --> struct node_st *p
 
-typedef struc {
+typedef struct {
 	int i;
 	float f;
 }NODE,*NODEP;    // 这样和上面是等价的
@@ -2667,7 +2667,7 @@ int main(){
 
 #### 文件IO（系统IO）与标准IO的区别
 
-区别：响应速度：标准IO快，吞吐量：文件IO快。
+区别：吞吐量：标准IO大，响应速度：文件IO快。
 
 注意：标准IO和文件IO不可混用。
 
@@ -3043,6 +3043,8 @@ getpass()
 
 time():返回从1970年1月1日0点0分0秒的时间，以秒为单位
 
+time(0) 和time(NULL)是等效的，都是把当前的时间给返回。
+
 gmtime()
 
 localtime()
@@ -3070,11 +3072,15 @@ strftime()
     exit和_exit区别，\_exit执行时不会执行钩子函数以及释放资源
 
     ​	只有当出错的时候，才应该用\_exit，不刷新资源，避免故障扩大。
+  
+  
+    - 最后一个线程从其启动例程返回
+  
+  
+  
+    - 最后一个线程调用pthread_exit
+  
 
-
-  - 最后一个线程从其启动例程返回
-
-  - 最后一个线程调用pthread_exit
 
 - 异常终止：
   - 调用abort
@@ -4002,6 +4008,211 @@ int main(){
 
 ![image-20231107091101121](note.assets/image-20231107091101121.png)
 
+**单实例的守护进程**：锁文件， 在/var/run/name.pid
+
+比如下面这个：
+
+![image-20231108091210451](note.assets/image-20231108091210451.png)
+
+启动脚本文件： /etc/rc*  目录下
+
+在守护进程的示例代码里，是通过输出重定向关闭标准输入输出，不太理解，通过chatgpt的说明：
+
+```
+通过输出重定向关闭标准输出与直接关闭标准输出是不同的。输出重定向是指将输出从标准输出重定向到另外一个文件描述符或文件中。这样做可以保留程序的输出（包括错误输出）并将其发送到指定位置。通过输出重定向关闭标准输出，可以将输出重定向到一个文件中，保留程序的输出，而不是直接关闭标准输出，导致程序无法输出任何信息。
+
+因此，建议使用输出重定向方式关闭标准输出，以便保留输出信息，并将其发送到指定文件中进行记录。这样可以保证程序在后台运行时仍能输出重要信息，如日志和警报。
+```
+
+下面开始进行测试：
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+int main(){
+
+    printf("this is a test\n");
+    exit(0);
+}
+```
+
+输出结果：
+
+![image-20231111141148801](note.assets/image-20231111141148801.png)
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+int main(){
+    // 关闭标准输出
+    close(STDOUT_FILENO);
+    printf("this is a test\n");
+    exit(0);
+}
+```
+
+运行结果：
+
+![image-20231111141502435](note.assets/image-20231111141502435.png)
+
+使用dup2进行重定向
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+int main(){
+    // 关闭标准输出
+    int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 输出重定向
+    dup2(fd, STDOUT_FILENO);
+    printf("this is a test\n");
+    fflush(NULL);
+    exit(0);
+}
+```
+
+可以看到，printf把内容给输出到文件里了。
+
+![image-20231111142122635](note.assets/image-20231111142122635.png)
+
+然后我在dup2以后，调用close把一开始打开的文件描述符给关闭
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+int main(){
+    // 关闭标准输出
+    int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 输出重定向
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    printf("this is a test\n");
+    fflush(NULL);
+    exit(0);
+}
+```
+
+运行结果：
+
+<img src="note.assets/image-20231111144337615.png" alt="image-20231111144337615" style="zoom:50%;" />
+
+可以看到test1.txt的文件里面还是有内容。我一开始觉得有点奇怪，后来才知道是我的理解有问题，open打开了一个文件描述符fd，这个文件描述符指向了一个文件，然后使用dup2是让标准输出对应的文件描述符从指向标准输出，变成了指向fd对应的文件，然后我执行close函数，它也只是关闭了fd这个文件描述符，并没有把标准输出指向的文件给关闭。
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+int main(){
+    // 关闭标准输出
+    int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 输出重定向
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    close(STDOUT_FILENO);
+    printf("this is a test\n");
+    fflush(NULL);
+    exit(0);
+}
+```
+
+加上close(STDOUT_FILENO)这行后，可以看到test1.txt文件中，就没有啥内容了。
+
+![image-20231111145707995](note.assets/image-20231111145707995.png)
+
+我突然好奇如果往系统日志里写内容会有问题吗，
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <syslog.h>
+int main(){
+    // 关闭标准输出
+    int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 输出重定向
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    syslog(LOG_INFO, "testdup2 this is test");
+    fflush(NULL);
+    exit(0);
+}
+```
+
+运行结果如下，可以看到系统日志里是有内容的。
+
+![image-20231111150133188](note.assets/image-20231111150133188.png)
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <syslog.h>
+int main(){
+    // 关闭标准输出
+    int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 输出重定向
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    close(STDOUT_FILENO);
+    syslog(LOG_INFO, "testdup2 this is test");
+    fflush(NULL);
+    exit(0);
+}
+```
+
+可以发现当把标准输出给关闭后，系统日志里并没有新增日志，并不是没有新增日志，可能是系统有延迟，
+
+![image-20231111150506730](note.assets/image-20231111150506730.png)
+
+因为我改了一下代码
+
+```
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <syslog.h>
+#include <time.h>
+int main(){
+    // 关闭标准输出
+    int fd = open("test1.txt", O_WRONLY|O_CREAT|O_TRUNC, 0600);
+    // 输出重定向
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    close(STDOUT_FILENO);
+    syslog(LOG_INFO, "testdup2 this is test%ld", time(0));
+    fflush(NULL);
+    exit(0);
+}
+```
+
+可以看到是有打印的，所以，系统日志，跟是否关闭标准输出没有啥关系。
+
+![image-20231111152132002](note.assets/image-20231111152132002.png)
+
+所以输出重定向，只是让标准输出不再输出到控制终端上，而是输出到其他文件里。
+
 #### 11、系统日志
 
 系统日志的目录在 /var/log 目录下
@@ -4011,6 +4222,402 @@ int main(){
 - openlog:关联系统日志
 - syslog：
 - closely
+
+上面写的守护进程的代码，现在加上系统日志后。
+
+```
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <syslog.h>
+#include <string.h>
+#include <errno.h>
+#define FNAME "/tmp/out"
+static int  daemonize(){
+    int fd;
+    pid_t pid = fork();
+    if (pid<0) {
+        //perror("fork()");
+        return -1;;
+    }
+    if (pid>0) {// parent
+        exit(0);
+    }
+    // 进程默认打开的文件描述符0 1 2 就不需要打开了，因此先进行重定向。
+    fd = open("/dev/null",O_RDWR);
+    if (fd<0) {
+       // perror("open()");
+        return -1;
+    }
+    // 标准输入、输出、出错重定向到fd
+    dup2(fd, 0);
+    dup2(fd, 1);
+    dup2(fd, 2);
+    if (fd>2) {
+        // 关闭fd
+        close(fd);
+    }
+    setsid(); // 设置守护进程
+    // 把当前工作路径设置为根路径，如果守护进程是在某个设备上工作
+    // 如果设备umount可能会出问题，所以需要修改工作路径
+    chdir("/"); 
+    // 如果确定后续不会在产生文件，可以执行umask(0)
+    // umask(0)
+    return 0;
+
+}
+int main(){
+    FILE * fp;
+    openlog("mydaemon", LOG_PID, LOG_DAEMON);
+    if (daemonize()) {
+        // 失败了就直接结束
+        //exit(1);
+        syslog(LOG_ERR, "daemonize() failed");
+    }else {
+        syslog(LOG_INFO, "daemonize() successed!");
+    }
+    fp = fopen(FNAME, "w");
+    if (fp==NULL) {
+        //perror("fopen()");
+        syslog(LOG_ERR, "fopen:%s", strerror(errno));
+        exit(1);
+    }
+    syslog(LOG_INFO, "%s was opened.", FNAME);
+
+    for (int i=0; i<1000; i++) {
+        fprintf(fp, "%d\n", i);
+        fflush(fp);
+        syslog(LOG_DEBUG, "%d is printed.", i);
+
+        sleep(1);
+    }
+    fclose(fp);
+    exit(0);
+}
+```
+
+可以在/var/log/syslog 文件中看到添加的内容。
+
+![image-20231108084721555](note.assets/image-20231108084721555.png)
+
+打印到系统日志的级别是可以配置的，具体可以在/etc/rsyslog.conf中进行配置。而且ubuntu的日志级别貌似是DEBUG，因为DEBUG的日志也写到日志文件里了。
+
+但是守护进程写的还是有问题，比如fclose 不会执行到。
+
+[系统日志参考链接](https://betterstack.com/community/guides/logging/how-to-view-and-configure-linux-logs-on-ubuntu-20-04/#step-3-examining-the-syslog-deamon-configuration)
+
+[参考链接2](https://www.digitalocean.com/community/tutorials/how-to-view-and-configure-linux-logs-on-ubuntu-debian-and-centos#step-3-using-the-rsyslog-daemon)
+
+## 并发（信号、线程）
+
+异步事件的处理：查询法，通知法
+
+### 一、信号
+
+#### 1、信号的概念
+
+​    信号是软件中断，大多数信号对应的系统默认动作是终止该进程。
+
+​    信号的响应依赖于中断
+
+#### 2、signal()
+
+信号类型,1-31是标准信号，34到64是实时信号。
+
+信号会打断阻塞的系统调用。
+
+![image-20231111122056879](note.assets/image-20231111122056879.png)
+
+函数指针的格式：类型 (*指针名)(形参)
+
+signal 的man手册说明：
+
+![image-20231109002207054](note.assets/image-20231109002207054.png)
+
+入参是两个参数：第一个是signum，第二个是自定义的一个函数指针，然后它的返回值也是一个函数指针。	
+
+从上图可以看出，signal的入参是两个参数，一个是函数指针，所以可以先写成这样：
+
+signal (int signum, void (*func)(int))
+
+然后signal函数的返回值是一个函数指针，所以定义成下面这样。
+
+void(\*signal (int signum, void (*func)(int)))(int) 
+
+关于man手册上的typedef的说明， [参考链接](https://zhuanlan.zhihu.com/p/380264864)，看了这个文章以后，我突然有点明白了，比如下面这段代码，add 函数，我没有使用typedef一开始，我声明了一个函数指针p，然后让p指向了add，这个使用使用的定义是`int (*p)(int,int); `，如果我想再声明一个函数指针p1，还需要用这种方式来声明，比较麻烦，而当我用typedef，`typedef int(*pp)(int, int);`,这里它的语义就是，定义一个函数指针，类型是 int(*)(int,int)，定义的别名是pp。这样的话我如果想多次定义函数指针就比较方便，话说，typedef的作用不就是用来起别名嘛，方便定义。关于typedef，可以看上面typedef那一节。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+int add(int a,int b){
+    return a +b;
+}
+typedef int(*pp)(int, int);
+int main(){
+    int a=3,b=5;
+    int ret;
+    // 定义一个函数指针
+    int (*p)(int,int); 
+    //ret =add(a,b);
+    p = add;
+    ret =p(a,b);
+    int(*p1)(a,b);
+    p1 = add;
+    int ret1 =p1(a,b);
+    pp p2;
+    p2 = add;
+    int ret2= p2(a,b);
+    pp p3;
+    p3 = add;
+    int ret3= p3(a,b);
+    printf("%d %d %d %d\n", ret, ret1,ret2, ret3);
+
+    exit(0);
+}
+```
+
+示例：
+
+下面这段代码，每隔一秒打印一个星号，可以接收ctrl +c的终止信号。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+int main(){
+    int i;
+    for (i=0; i<10; i++) {
+        write(1, "*", 1);
+        sleep(1);
+    }
+    exit(0);
+}
+```
+
+<img src="note.assets/image-20231111121219474.png" alt="image-20231111121219474" style="zoom:50%;" />
+
+也可以让程序忽略终端输入的信号，运行结果如下图，这样在控制台输入ctrl +c 也没有啥用了。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+int main(){
+    int i;
+    // singal 除了接受函数指针外，还可以接特定的信号： SIG_IGN, SIG_DFL
+    signal(SIGINT, SIG_IGN);
+    for (i=0; i<10; i++) {
+        write(1, "*", 1);
+        sleep(1);
+    }
+    exit(0);
+}
+```
+
+![image-20231111125457294](note.assets/image-20231111125457294.png)
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+static void int_handler(int s){
+    // 参数s的含义后面再说。
+    write(1, "!", 1);
+}
+int main(){
+    int i;
+    // singal 除了接受函数指针外，还可以接特定的信号： SIG_IGN, SIG_DFL
+    //signal(SIGINT, SIG_IGN);
+    signal(SIGINT, int_handler);
+    for (i=0; i<10; i++) {
+        write(1, "*", 1);
+        sleep(1);
+    }
+    exit(0);
+}
+```
+
+![image-20231111162122603](note.assets/image-20231111162122603.png)
+
+我按ctrl +c的时候，就会打印叹号。
+
+但是我一直按照ctrl+c的时候，执行结果是下面这样，执行时间根本没有10s。这个是因为信号会阻断系统调用。
+
+![image-20231111162417495](note.assets/image-20231111162417495.png)
+
+#### 3、信号的不可靠
+
+信号的行为不可靠，这里是指一个信号在处理这个行为的同时，又来了另外一个相同的信号，由于信号的处理对应的执行现场，是由内核来布置的，那么执行现场是有可能部署在相同的位置，那第二次的执行现场就会把第一次的给冲掉，
+
+#### 4、可重入函数
+
+为了解决信号不可靠的问题。第一次调用还没有结束，就发生了第二次调用，这种就是可重入函数。
+
+所有的系统调用，都是可重入的，一部分标准库函数也是可重入的，比如memcpy是可重入的，rand是不可重入的。
+
+#### 5、信号的响应过程
+
+**信号从收到到响应有一个不可避免的延迟。**
+
+思考：如何忽略掉一个信号的？把mask对应的位给置为0
+
+​	标准信号为什么要丢失？
+
+​	在处理信号的时候，再次收到相同的信号，就不会进行响应。
+
+​	标准信号的响应没有严格的顺序。
+
+内核为每个进程维护了两个位图，一个是mask（信号屏蔽字） 另外一个是pending， 这两个位图都是32位的，因为unix规定的标准信号是32位。
+
+mask：用来表示当前信号的状态。
+
+pending：用来记录当前进程收到哪些信号。
+
+mask 屏蔽字的值一般都是1，pending初始值为0，
+
+<img src="note.assets/image-20231112121826735.png" alt="image-20231112121826735" style="zoom:30%;" />
+
+[信号](https://blog.csdn.net/lyzzs222/article/details/127085661)
+
+比如打星号的这个程序，当时间片用尽的时候,会被打断（也不一定是时间片用尽，也有可能是因为调用了sleep函数，从用户态切好到内核态），操作系统会保存现场，现场里会保存main函数执行的地址，然后可以执行的时候，操作系统又恢复现场，就会进行mask&pending，如果按位与的结果为0，就说明没有收到信号，然后就是我们所看到的，每隔一秒打印一个星号。
+
+如果中接到中断信号了，pending中的一位就会置为1，这个时候程序并不知道自己接收到中断了，当程序从kenal态切换会用户态，执行mask&pending操作，就会得到一个非0的值，根据这个值，就可以知道具体是哪个信号，比如就是SIGINT，然后程序就知道收到了信号，接着就把mask和pending对应的位给置为0，然后操作系统把保存的现场里存放的main函数的执行地址，替换为之前注册的对应信号的处理函数的地址，执行对应的逻辑，执行完，再回到内核态，然后把现场里的执行位置给换回来，换成main函数的执行地址，把mask对应的位置为1，然后再从内核态切换到用户态，再执行mask&pending操作，发现对应的信号已经没有了，再接着打印星号。
+
+![image-20231112132311646](note.assets/image-20231112132311646.png)
+
+信号，实际上依赖中断。
+
+#### 6、信号常用函数
+
+- kill()：用来发信号。
+
+- raise()：给当前进程或者线程发送一个信号，等价于kill(getpid(),sig)
+
+- alarm()：以秒为单位的计时器，
+
+- pause()：等待一个信号唤醒
+
+sleep是有问题的，因为有的环境下**，sleep = alarm+pause, sleep使用alarm和pause来封装的**。**如果我们的程序当中也用到了alarm函数，这个就会出现问题**
+
+那为什么当前情况下用sleep没有事？ 是因为当前环境下我们的sleep是用nanosleep封装的， 所以sleep在linux环境下使用都不会有问题，如果**考虑到程序的移植的话，就不要使用sleep函数，因为你不知道对方环境下是怎么封装的。**
+
+[参考链接](https://thoughts.teambition.com/share/60ac9c0f6d76bc0046b9adc4#60a87eff9f69670046551355)
+
+​	
+
+- sleep()
+
+alarm示例代码
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main(){
+    alarm(5);
+    while (1);
+    exit(0);
+}
+```
+
+运行结果如下图：
+
+![image-20231112141612040](note.assets/image-20231112141612040.png)
+
+alarm没有办法实现多任务的计时器，当有多个alarm的时候，只能响应最后一个。
+
+因为**进程从收到信号到响应，有一个不可避免的时间**，如果用信号来计时的话， 理论上 讲10ms以内的计时是不准确的，只要超过这个时间，用信号可以准确的计时。
+
+alarm： 当当前倒计时到时间以后，会给当前进程发送一个SIGALARM的信号，SIGALARM信号的默认动作是杀掉当前进程。
+
+并且上面这段代码，在执行的时候，会导致cpu使用率飙升，飙升的原因是while（1）死循环在那里空转。可以加上pause，这样就不会导致cpu飙升了。
+
+示例代码：
+
+定时执行五秒
+
+使用time函数
+
+```
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+int main(){
+    time_t end;
+    int64_t count =0;
+    end = time(NULL) +5;
+    while (time(NULL)<=end) {
+        count ++;
+    }
+    printf("%lld\n", count);
+    exit(0);
+
+}
+```
+
+我们可以看到下面它执行的时间是不固定的。
+
+![image-20231114084539838](note.assets/image-20231114084539838.png)
+
+使用alarm的执行结果如下图，可以看出时间控制的更精准，而且
+
+```
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+static int loop =1;
+static void alarm_handler(int s){
+    loop=0;
+}
+int main(){
+    
+    int64_t count =0;
+    alarm(5);
+    signal(SIGALRM, alarm_handler);
+    while (loop) {
+        count++;
+    }
+    printf("%lld\n", count);
+    exit(0);
+    //下面这版代码，alarm会终止进程，异常终止根本就不会打印count的值
+    // 所以使用上面这种，使用signal函数。
+    // int64_t count =0;
+    // alarm(5);
+    // while (1) {
+    //     count++;
+    // }
+    // printf("%lld\n", count);
+    // exit(0);
+
+}
+```
+
+
+
+![image-20231114090231123](note.assets/image-20231114090231123.png)
+
+mycat.c 实现了类似cat的功能，将文件输出到终端。接下来有一个目标，实现一个slow cat，每秒输出指定的字符。
+
+第一种方式，使用sleep函数。
+
+7、信号集
+8、信号屏蔽字/pending集的处理
+9、扩展
+	sigsuspend()
+	sigaction()
+	setitimer()
+10、实时信号。
 
 
 

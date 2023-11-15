@@ -66,6 +66,7 @@ int main(){
 
         sleep(1);
     }
+    // 不会执行到。
     fclose(fp);
     exit(0);
 }
