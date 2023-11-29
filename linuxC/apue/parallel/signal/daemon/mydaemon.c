@@ -1,5 +1,7 @@
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/syslog.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -8,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #define FNAME "/tmp/out"
+static   FILE * fp;
 static int  daemonize(){
     int fd;
     pid_t pid = fork();
@@ -41,8 +44,32 @@ static int  daemonize(){
     return 0;
 
 }
+static void daemon_exit(){
+    fclose(fp);
+    closelog();
+    exit(0); // 进程变成正常终止了，这句话不太理解
+}
 int main(){
-    FILE * fp;
+
+    /*
+     注册了多个信号，执行相同的信号处理函数，daemon_exit 是会有重入的危险，比如第一个信号来了刚执行完fclose，
+     然后另外一个信号来了，又执行了一遍fclose。会有问题，在这里，期望是响应一个信号的时候，先把另外的信号给block住。
+    */
+    // signal(SIGINT, daemon_exit);
+    // signal(SIGQUIT, daemon_exit);
+    // signal(SIGTERM, daemon_exit);
+    // 上面的三行代码有重入的风险。
+    struct sigaction sa;
+    sa.sa_handler = daemon_exit;
+    sigemptyset(&sa.sa_mask);
+    // 设置处理信号的时候的忽略信号。
+    sigaddset(&sa.sa_mask, SIGQUIT);
+    sigaddset(&sa.sa_mask, SIGTERM);
+    sigaddset(&sa.sa_mask, SIGINT);
+    sa.sa_flags =0;
+    sigaction(SIGINT, &sa, NULL);
+    sigaction(SIGQUIT, &sa, NULL);
+    sigaction(SIGTERM, &sa, NULL);
     openlog("mydaemon", LOG_PID, LOG_DAEMON);
     if (daemonize()) {
         // 失败了就直接结束
@@ -68,6 +95,5 @@ int main(){
     }
     // 不会执行到。
     fclose(fp);
-    closelog();
     exit(0);
 }

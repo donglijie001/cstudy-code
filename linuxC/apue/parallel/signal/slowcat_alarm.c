@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -5,6 +6,11 @@
 #include <errno.h>
 #define CPS 10 // 每秒传输的字符
 #define  BUF_SIZ__ CPS
+static volatile int  loop =0;
+void alrm_handler(int s){
+    alarm(1); // 这里要加上alarm，不然下面的while循环的代码，只会走到一次，然后就再也不会走了。陷入死循环
+    loop =1;
+}
 int main(int argc,char ** argv){
     if (argc<2) {
         fprintf(stderr, "Usage%s <src_file>\n",argv[0]);
@@ -16,6 +22,8 @@ int main(int argc,char ** argv){
     int len;
     int ret;
     int pos;
+    signal(SIGALRM, alrm_handler);
+    alarm(1);
     do{
         sfd =open(argv[1],O_RDONLY);
         if (sfd<0) {
@@ -29,14 +37,16 @@ int main(int argc,char ** argv){
     // dfd 直接改成1，对应标准输出，这样就会把文件给输出到终端上
     dfd=1;
     while (1) {
-       len= read(sfd, buf, BUF_SIZ__);
-       if (len<0) {
+        while (!loop)
+            pause();  // 减少对cpu的占用
+        loop = 0;
+       while ((len= read(sfd, buf, BUF_SIZ__))<0) {
             if (errno == EINTR) {
                 continue;
             }
             perror("read");
             break;
-       }
+       };
        if (len==0) {
             break;
        }
@@ -57,8 +67,6 @@ int main(int argc,char ** argv){
             pos += ret;
             len -= ret;
        }
-       // sleep在某些平台不兼容，不应该出现在正式的代码里。
-       sleep(1);
       
     }
    // close(dfd);
