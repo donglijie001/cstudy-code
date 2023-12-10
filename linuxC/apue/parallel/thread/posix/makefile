@@ -1,2 +1,2 @@
-CFLAGS+=-pthread
+CFLAGS+=-pthread -Wall -g
 LDFLAGS+=-pthread

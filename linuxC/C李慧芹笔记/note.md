@@ -5126,7 +5126,161 @@ pthread_create
 
 线程的调度取决于调度器的调度策略。
 
+线程终止，共三种方式：
+
+- 线程从启动例程返回，返回值就是线程的退出码
+- 线程可以被同一进程中的其他线程取消
+- 线程调用pthread_exit()函数
+
+pthread_join() 相当于进程的wait
+
+栈的清理
+
+- pthread_cleanup_push()
+- pthread_cleanup_pop() 
+
+> 上面这两个实际上是宏，并不是函数，可以使用gcc -E来查看，这两个必须成对出现
+
+线程的取消选项
+
+- pthread_cancel
+
+```
+取消有两种状态，允许和不允许，允许取消又分为
+
+异步cancel和推迟canel（默认）推迟至cancel点再响应cancel点，
+cancel点：POSIX定义的cancel点，都是可能引发阻塞的系统调用。
+
+pthread_setcancelstate(): 设置是否允许取消
+pthread_setcanceltype()：设置取消类型
+pthread_testcancel()：本函数什么不做，就是一个取消点
+比如下面图里的这段伪码，把fd1打开了，还没有给它注册清理的钩子函数（即没有执行cleanup_push函数），这个时候即使收到了线程的取消请求，也不会响应，而是在下一行执行系统调用open的时候进行响应。
+```
+
+![image-20231201083654612](note.assets/image-20231201083654612.png)
+
+线程分离
+
+- pthread_detach：创建完线程后，让其自生自灭。不再对其进行收尸
+
 ### 3、线程同步
+
+第一版求质数的程序
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <pthread.h>
+#define LEFT 30000000
+#define RIGHT 30000200
+#define THRNUM (RIGHT-LEFT) +1
+
+static void * thr_prime(void * p){
+    int mark=1;
+    int i = *(int *)p;
+        for (int j =2; j<i/2; j++) {
+            if (i%j==0) {
+                mark=0;
+                break;
+            }
+        }
+        if (mark) {
+            printf("%d is a primer\n", i);
+        }
+    pthread_exit(NULL);
+}
+int main(){
+    int err,i;
+    pthread_t tid[THRNUM];
+
+    for (i=LEFT; i<=RIGHT; i++) {
+        err = pthread_create(tid+(i-LEFT), NULL, thr_prime, &i);
+        if (err) {
+            fprintf(stderr, "pthred_create():%s\n", strerror(err));
+            exit(1);
+        }
+    }
+    for (i=LEFT; i<=RIGHT; i++) {
+        pthread_join(tid[i-LEFT], NULL);
+    }
+
+    exit(0);
+}
+```
+
+运行结果如下图：是有问题的。
+
+![image-20231201090010332](note.assets/image-20231201090010332.png)
+
+出现问题的原因是出现了竞争。
+
+在一个32位的机器上，虚拟的内存是4G，而内核用的是1G大小，给用户使用的是不到3G，因为给用户使用的是从某一个特定的地址（0X8004没有听清，后面可以再了解一下）开始，通过ulimt -a，可以看到栈空间大小，比如视频里是10M，然后创建线程时调用函数都会有一个栈空间，3G/10M 约等于300，但是由于分配内存时不单单是栈空间，还有其他的，所以一个进程，最多创建300个左右的线程。
+
+竞争故障：
+
+比如下面这段代码，就是20个线程通知读取一个文件，读出里面的数字，然后加1，再写进去，但是运行的结果却是不符合预期的。
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <string.h>
+#include <unistd.h>
+
+#define  THRNUM 20
+#define  FANME "/tmp/out"
+#define  LINESIZE 1024
+
+static void * thr_add(void * p){
+    FILE * fp;
+    fp = fopen(FANME, "r+");
+    char linebuf[LINESIZE];
+    if (fp==NULL) {
+        // 打开文件失败，直接退出
+        perror("fopen()");
+        exit(1);
+    }
+    fgets(linebuf, LINESIZE,  fp);
+    // 需要重新定位一下文件位置指针
+    fseek(fp, 0, SEEK_SET);
+    fprintf(fp, "%d\n", atoi(linebuf)+1);
+    sleep(1);
+    fclose(fp);
+    pthread_exit(p);
+}
+int main(){
+    pthread_t tid[THRNUM];
+    int err;
+    for(int i =0;i<THRNUM;i++){
+        err = pthread_create(tid+i, NULL, thr_add, NULL);
+        if (err) {
+            fprintf(stderr, "pthread_create():%s\n", strerror(err));
+            exit(1);
+        }
+    }
+    for (int i=0; i<THRNUM; i++) {
+        pthread_join(tid[i], NULL); 
+    }
+    exit(0);
+}
+```
+
+##### 互斥量
+
+ps:需要执行sudo apt-get install manpages-posix-dev，在ubuntu上才能通过man手册查看。
+
+pthread_mutex_t
+
+- pthread_mutex_init/ PTHREAD_MUTEX_INITIALIZER
+- pthread_mutex_destroy
+- pthread_mutex_lock
+- pthread_mutex_trylock
+- pthread_mutex_unlock
+- pthread_once
+
+
 
 ### 4、线程属性，线程同步的属性
 
