@@ -16,6 +16,7 @@ struct mytbf_st{
     int token;
     int pos;
     pthread_mutex_t mut;
+    pthread_cond_t cond;
 };
 static pthread_once_t init_once = PTHREAD_ONCE_INIT;
 static int get_free_pos_unlocked(void){
@@ -38,6 +39,7 @@ static void * thr_alrm(void *p){
                 if (job[i]->token>job[i]->burst) {
                     job[i]->token = job[i]->burst;
                 }
+                pthread_cond_broadcast(&job[i]->cond);
                 pthread_mutex_unlock(&(job[i]->mut));
 
             }
@@ -84,6 +86,7 @@ mytbf_t * mytbf_init(int cps, int burst){
     me->burst = burst;
     me->token =0;
     pthread_mutex_init(&(me->mut), NULL);
+    pthread_cond_init(&(me->cond), NULL);
 
     pthread_mutex_lock(&mut_job);
     int pos= get_free_pos_unlocked();
@@ -112,10 +115,11 @@ int mytbf_fetchtoken(mytbf_t * ptr, int size){
     }
     pthread_mutex_lock(&(me->mut));
     while (me->token <=0) {
-        // 如果没有token就先释放锁，然后出让调度器，再加锁
-        pthread_mutex_unlock(&(me->mut));
-        sched_yield();
-        pthread_mutex_lock(&(me->mut));
+        pthread_cond_wait(&(me->cond), &me->mut);
+        // // 如果没有token就先释放锁，然后出让调度器，再加锁
+        // pthread_mutex_unlock(&(me->mut));
+        // sched_yield();
+        // pthread_mutex_lock(&(me->mut));
     }
     // 有token以后，返回可以申请的数量。
     int n = min(me->token, size);
@@ -139,6 +143,8 @@ int mytbf_returntoken(mytbf_t *ptr, int size){
     if (me->token>me->burst) {
         me->token = me->burst;
     }
+    pthread_cond_broadcast(&me->cond);
+
     pthread_mutex_unlock(&(me->mut));
 
     return size;
@@ -148,6 +154,7 @@ int mytbf_destory(mytbf_t *ptr){
     pthread_mutex_lock(&mut_job);
     job[me->pos] = NULL;
     pthread_mutex_destroy(&(me->mut));
+    pthread_cond_destroy(&me->cond);
     pthread_mutex_unlock(&mut_job);
 
     free(ptr);

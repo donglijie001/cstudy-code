@@ -1,3 +1,5 @@
+
+
 # 资料
 
 视频链接：https://www.bilibili.com/video/BV18p4y167Md
@@ -5280,11 +5282,82 @@ pthread_mutex_t
 - pthread_mutex_unlock
 - pthread_once
 
+条件变量
 
+pthread_cond_t
+
+- pthread_cond_init/PTHREAD_COND_INITIALIZER
+- pthread_cond_destory
+- pthread_cond_broadcast
+- pthread_cond_signal
+- pthread_cond_wait
+- pthread_cond_timewait
+
+信号量
+
+相当于就是一个并发的控制，在mysem文件夹里，使用线程求质数，最多创建201个线程，但是通过并发控制，最多同时创建N个线程。
+
+读写锁：
+
+​	读锁：共享锁，写锁：互斥锁
 
 ### 4、线程属性，线程同步的属性
 
+pthread_attr_init：成功了返回0，否则返回非0
+
+pthread_attr_destroy
+
+pthread_attr_setstacksize
+
+剩下的看手册man pthread_attr_init 的see also
+
+互斥量的属性：
+
+pthread_mutexattr_init
+
+pthread_mutexattr_destroy
+
+pthread_mutexattr_getpshared 是否跨进程起作用
+
+pthread_mutexattr_getpshared
+
+clone：既可以克隆类似一个线程的东西，也可以克隆一个类似进程的东西
+
+互斥量类型：
+
+![image-20231210210506643](note.assets/image-20231210210506643.png)
+
+设置互斥量类型
+
+![image-20231210210553718](note.assets/image-20231210210553718.png)
+
+条件变量属性：
+
+![image-20231210210739436](note.assets/image-20231210210739436.png)
+
+读写锁属性
+
 ### 5、重入，线程与信号，线程与fork
+
+多线程中的IO，默认是线程安全的，加后缀的unlockeded方法，是线程不安全的。
+
+以进程为单位，只有peding位图，而线程既有mask位图，也有pending位图。
+
+当程序从内核态切换到user态的时候，正在运行的线程会先和进程的pending位图按位与，然后再和线程本身的pending位图按位与。
+
+<img src="note.assets/image-20231211083232761.png" alt="image-20231211083232761" style="zoom:50%;" />
+
+- pthread_sigmask
+- pthread_kill
+- sigwait
+
+线程与fork
+
+### 6、openmp线程标准
+
+openmp--> www.OpenMP.org
+
+
 
 # 用过的c语言知识
 
