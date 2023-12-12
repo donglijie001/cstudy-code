@@ -4,6 +4,7 @@
 #include <pthread.h>
 // 测试一下一个进程到底可以创建多少个线程，没有进行任何特殊设置的情况
 //,我在32位的虚拟机上运行了一下，381个线程
+// 我修改了栈大小，可以创建3051个线程。
 static void* func(void* p){
     puts("Thread is working");
     //return NULL;
