@@ -48,7 +48,7 @@ int inet_aton(const char* string, struct in_addr * addr);
 下面这个函数将网络字节序整数型ip地址转换为字符串形式。
 ```
 #include<arpa/inet.h>
-char * inet_ntoa(struct in_addr adr);
+char * inet_ntoa(struct in_addr adr); // 这个函数不可重入
 ```
 网络地址初始化
 ```

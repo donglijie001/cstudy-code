@@ -1349,6 +1349,22 @@ sizeof(struct) = 16
 
 ![image-20230604155600874](note.assets/image-20230604155600874.png)
 
+```
+内存对齐原则：
+
+结构体变量的起始地址必须是其成员变量类型大小的整数倍
+
+结构体变量的大小必须是其最大成员变量大小的整数倍
+
+对于这两个原则的解释如下：
+
+为了保证访问成员变量时CPU能够正确地读取，必须确保成员变量在内存上的起始地址是它自身大小的整数倍。
+
+为了保证结构体内各成员的访问时访问地址的连续性，必须确保结构体内各成员变量地址相对起始位置偏移量是它自身大小的整数倍，并且结构体变量本身的地址也是其对齐倍数的整数倍。
+```
+
+[参考链接](https://cloud.tencent.com/developer/article/1727794)
+
 比如这样一个结构体：
 
 ```
@@ -5367,13 +5383,456 @@ openmp--> www.OpenMP.org
 
 复杂流程：自然流程是非结构化的
 
-2、IO多路转接
+<img src="note.assets/image-20231212090254686.png" alt="image-20231212090254686" style="zoom:50%;" />
+
+图中的状态流转:r：读态，w：写态， Ex：出错 T：terminate，进程终止
+
+非阻塞读取有个假错是EAGAIN， man read 可以看到
+
+阻塞读取有个假错是EINTR
+
+使用有限状态机
+
+### 2、IO多路转接（多路复用）
+
+监听文件描述符的状态变化。示例：relay.c，两个终端之间相互通信。
+
+- select 可以移植
+- poll 可以移植
+- epoll linux的方言，不可移植
+
+#### select 
+
+还可以完成一个倒计时。
+
+```
+// 当函数返回的时候，会把结果放到入参里。
+int select(int nfds, fd_set *readfds, fd_set *writefds,
+                  fd_set *exceptfds, struct timeval *timeout);
+nfds：要监视的文件描述符最大值+1
+readfds：可以发生读的状态文件描述符的集合
+writefds：可以发生写的文件描述符的集合
+exceptfds：异常的文件描述符
+timeout：超时设置，如果不设置，就是一直死等。
+使用流程：
+1、布置监视任务
+2、监视
+3、查看监视结果
+
+select 的特点
+1、非常古老，可移植
+2、监视现场和监视结果放在同一块空间
+3、int nfds 是有大小限制的，不能超过有符号整数的最大值，但是实际上我们可以通过修改ulimit 修改限制
+4、监视的事件太过单一，只有读和写以及异常
+```
+
+select 是以事件为单位，组织文件描述符，而poll是以文件描述符为单位组织事件。
+
+#### poll
+
+可移植。
+
+```
+#include <poll.h>
+
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+struct pollfd {
+               int   fd;         /* file descriptor */
+               short events;     /* requested events */
+               short revents;    /* returned events */
+};
+poll第一个参数是结构体数组的起始位置，第二个参数是数组的个数，第三个参数是超时时间，-1 表示阻塞死等，0表示非阻塞（相当于是尝试去做一下，无论有没有结果都返回），正数表示超时时间，
+
+```
+
+#### epoll
+
+```
+poll和epoll的区别：
+使用poll，创建的那个数组维护在用户态，而使用epoll，那个数组维护在kernal态
+```
+
+![image-20231219083019236](note.assets/image-20231219083019236.png)
+
+```
+#include <sys/epoll.h>
+man epoll_create
+epoll_create, epoll_create1 - open an epoll file descriptor
+// size 只要是一个正数可以，从2.6.8 就忽略了这个参数，但是它得大于0
+int epoll_create(int size);
+man epoll_ctl
+epoll_ctl - control interface for an epoll descriptor
+ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
+ man epoll_wait
+ 
+```
+
+感觉epoll 不是太好用。
 
 3、其他读写函数
 
+```
+readv： 读多个缓冲区
+writev ：写多个缓冲区
+在apue.h
+writen: 写n个字节
+readn：坚持读n个字节
+```
+
 4、存储映射IO
 
+```
+mmap：
+mmap函数是一种内存映射文件的方法，它把文件映射到进程的地址空间，使得进程可以像访问内存一样访问文件。mmap函数可以将文件映射到进程的任意地址空间，还可以将文件的某个部分映射到进程的地址空间。
+mmap函数的主要作用如下：
+内存映射文件: 将文件映射到进程的地址空间中以便进程可以访问文件。
+共享内存: 可以使用mmap函数创建一个共享内存区域，多个进程可以共享同一块内存。
+零拷贝: 网络数据传输时，可以使用mmap函数将数据映射到内存中，避免数据的多次拷贝。
+内存池: 使用mmap函数可以创建一段连续的内存，用来作为内存池，减少内存碎片的产生。
+```
+
+还有一个函数叫pmap，是用于显示进程内存映射情况的工具函数
+
+```
+void *mmap(void *addr, size_t length, int prot, int flags,
+                  int fd, off_t offset);
+       int munmap(void *addr, size_t length);
+  addr：映射的起始地址
+  length:映射的长度
+  prot：映射完之后的操作权限
+  flags：必须包含shared或private，
+  offset：偏移量，从offset开始映射length的长度，到address的地址
+  
+int munmap(void *addr, size_t length);
+// 释放映射的内存。
+  
+```
+
 5、文件锁
+
+```
+fcntl
+lockf
+flock
+```
+
+## 进程间通信
+
+### 1、管道
+
+内核提供，单工（一方读，一方写），自同步机制
+
+匿名管道:不能用于没有亲缘关系的进程间通信。
+
+```
+pipe 创建的是匿名管道，可以用于亲缘进程之间通信，就是先用pipe创建一个管道，fork一个子进程，这样父子进程之间就都有了这个匿名管道，就可以进行通信，一般我们会在进程中关闭一个管道，比如子进程只进行读，那就把父进程的写给关闭。
+```
+
+命名管道
+
+```
+mkfifo
+```
+
+### 2、XSI 
+
+```
+XSI前身是SysV
+ipcs 可以查看有哪些类型的消息队列
+ipcrm 移除消息队列
+Message Queues
+Shared Memory Segments
+Semaphore Arrays
+这三种都需要有个key，用于进程间找到这个消息队列，产生key的函数是ftok
+
+以Message Queues为例
+***get ***op ***ctl msg sem shm
+就是msgget msgop msgctl
+
+主动端：先发包的一方
+被动端：先收包的一方（先运行起来，等着收包）
+```
+
+把msg的recver 打开运行，然后输入ipcs就可以看到创建的消息队列
+
+![image-20231223104130710](note.assets/image-20231223104130710.png)
+
+```
+通过ulimit -a  可以看出系统限制的消息队列中单个消息的大小。
+```
+
+```
+在/linuxC/apue/ipc/xsi/msg 目录下，一共三个文件，一个头文件，一个sender，一个recver，
+其中在recver中:
+1、ftok(KEYPATH, KEYPROJ) 生成一个key
+2、msgget(key, IPC_CREAT|0600) 创建消息队列，并且设置了权限。
+3、msgrcv 接收消息，第三个参数，发送的消息的大小，
+比如定义的要发送的消息结构体如下：
+struct msg_st{
+    long mtype;
+    char name[NAMESIZE];
+    int math;
+    int chinese;
+};
+因为要发送的数据的大小，实际上是name，math，chinese这三个字段的长度，因此在代码里写成了：sizeof(rbuf)-sizeof(long)
+```
+
+ftp实例：
+
+<img src="note.assets/image-20231224132048057.png" alt="image-20231224132048057" style="zoom:50%;" />
+
+Semaphore array
+
+
+
+### 3、网络套接字socket
+
+```
+推荐书籍：unix 网络编程和TCP/IP详解
+讨论：跨主机的传输要注意的问题
+1、字节序问题：
+	大端：低地址处放高字节，
+	小端：低地址处放低字节，
+	主机字节序：host
+	网络字节序：network
+	——to--: 这里不再区分大端和小端，而是主机字节序和网络字节序，发送到网络就是htost to network， 从网络接收就是network to host
+	
+	在传输char数组时，每个字节都是以其本身的方式发送的，不需要考虑字节序问题。
+而对于大于一个字节的数据类型，由于不同的机器使用的字节序可能不同，因此需要在发送和接收端进行字节序的转换，保证数据的正确性。
+2 对齐：
+比如下面这个结构体，编译器会有一个对齐的操作，会使得下面的结构体的长度比我们计算的要长，所以下面的这个结构体的长度是12个字节
+	struct{
+		int i;
+		float f;
+		char ch;
+	}
+	解决办法是让编译器不对齐。
+3、类型长度问题：
+		int，char，标准C里并没有明确规定其长度，解决：使用规定长度的类型，比如int32_t
+SOCKET 是什么：就是一个中间层。
+常用的函数
+socket()
+bind()
+sendto()
+rcvfrom()
+inet_pton()
+inet_ntop()
+setsockopt()
+getsockopt()
+```
+
+![image-20231224161738295](note.assets/image-20231224161738295.png)
+
+比如一个结构体：
+
+```
+{
+int i;
+char ch;
+float f;		
+}
+下图：0-13 这么些地址，0%4 =0 ，可以整除，所以把i的起始位置存放在这里，4%1=0，所以ch的起始位置放在了4，但是5，6，7 %4 都整除不了，所以把float类型的变量f的起始位置放在了8这个位置
+```
+
+![image-20231224163837018](note.assets/image-20231224163837018.png)
+
+socket就是一个中间层。
+
+![image-20231225083651289](note.assets/image-20231225083651289.png)
+
+#### 报式套接字
+
+socket 下面是各种协议，上面是各种传输方式。
+
+报式套接字响应过程
+
+```
+被动端（先运行）
+1、取得SOCKET
+2、给SOCKET 取得地址
+3、收/发消息
+4、关闭SOCKET
+
+主动端
+1、取得SOCKET
+2、给SOCKET 取得地址（可省略）
+3、收/发消息
+4、关闭SOCKET
+```
+
+```
+htonl()表示将32位的主机字节顺序转化为32位的网络字节顺序 ; (ip地址是32位的，即htonl函数用于ip地址)；
+ntohl()函数与其相反；
+htons()表示将16位的主机字节顺序转化为16位的网络字节顺序（i端口号是16位的 ， htons函数用于端口号）；
+ntohs()函数与其相反；
+htonl(atoi("1989")) 和htons(atoi("1989") )返回结果为什么不一样
+atoi 函数将字符串转换为整数后，得到的是主机字节序的整数，即在大部分计算机上是小端字节序。因此，atoi("1989") 的结果为 1989。
+
+htonl(atoi("1989")) 函数先将主机字节序的 1989 转换为大端字节序，即将字节序进行反转，得到 0x000007C5。然后再将该值转换为大端字节序的结果为 0xC5070000。
+
+而 htons(atoi("1989")) 函数先将主机字节序的 1989 转换为16位整数的网络字节序，转换为 0x07C5，再将该值转换为大端字节序的结果为 0xC507。
+
+因此，htonl(atoi("1989")) 和 htons(atoi("1989")) 返回的结果不同，因为它们分别对两个不同的数据类型进行操作，而且htonl 和 htons 函数是将整数从主机字节序转换为网络字节序，需要考虑不同字节序之间的处理。
+
+netstat -anu 查看udup 的端口号。
+```
+
+[hton参考链接](https://blog.csdn.net/qq_42698422/article/details/106862785)
+
+多点通信：广播（全网广播，子网广播），多播/组播
+
+广播
+
+```
+广播地址：255.255.255.255，在一个局域网内的设备都能收到消息。
+默认是不支持发送广播的，需要进行特殊的设置，man 7 socket 查看，有一个Socket options
+特殊的多播地址：224.0.0.1 所有开启多播的设备，都存在这个组里。
+```
+
+wireshark使用
+
+[安装教程](https://zhuanlan.zhihu.com/p/641664132)
+
+```
+apt remove --purge wireshark
+```
+
+我在虚拟机，安装的时候配置错了，所以导致，只有root才能抓包，所以启动wireshark，需要在控制台，以sudo wireshark启动。
+
+[原始套接字参考文档](https://www.opensourceforu.com/2015/03/a-guide-to-using-raw-sockets/)
+
+wireshark使用
+
+basic下的sender和rcver运行起来，抓包结果如下，可以看出41 6c 61 6e 00 后面的04 08 02 等是有问题的，是一种泄漏，需要进行清理。使用memset给清零。
+
+![image-20240102222852636](note.assets/image-20240102222852636.png)
+
+使用memset 以后，再次抓包，就可以看到没有那些乱七八糟的东西了。
+
+![image-20240102225615510](note.assets/image-20240102225615510.png)
+
+UDP 丢报
+
+TTL：数据传输可以经过的最多的路由数，linux最多是64，windows最多是128.
+
+丢报是由阻塞造成的，解决方案是流控，停等式流控
+
+停等式流控： 是server端发一个消息，c端收到后，发一个ack。
+
+![image-20240104083732167](note.assets/image-20240104083732167.png)
+
+半连接池
+
+两次握手以后，server端会把这个信息给放到一个半连接池当中。
+
+![image-20240104085048211](note.assets/image-20240104085048211.png)
+
+有一种攻击叫半连接池洪水攻击，就是只发第一个握手请求。
+
+解决方案：不要半连接池，而是使用（对端ip+port + 我端的ip+port + protocol ） 或上一个随机值（salt） 进行hash，得到一个cookie。salt是由内核产生的，每一分钟产生一个新的。
+
+![image-20240104090048717](note.assets/image-20240104090048717.png)
+
+#### 流式套接字
+
+![image-20240104091309664](note.assets/image-20240104091309664.png)
+
+```
+netstat -ant 查看tcp链接的端口号
+可以看到，我把stream/basic中的server运行起来的时候，1989端口号已经被监听了。
+```
+
+![image-20240105085310265](note.assets/image-20240105085310265.png)
+
+模拟客户端给server发消息，或者用telnet也可以。
+
+![image-20240105085453442](note.assets/image-20240105085453442.png)
+
+![image-20240105085604722](note.assets/image-20240105085604722.png)
+
+然后我终止server，再重新运行server，会出现bind错误，这是因为1989这个端口号还在被占用。要解决这个问题，要使用socket的属性，SO_REUSEADDR，如果发现这个端口没有被释放，把这个端口释放，并重新绑定。man 7 socket可以看到。
+
+![image-20240105090016298](note.assets/image-20240105090016298.png)
+
+![image-20240105085933851](note.assets/image-20240105085933851.png)
+
+> 流式编程的代码，没有网络字节序的问题，是因为请求传输是以字节的形式进行传输，每个变量的单位都是字节，而像int 这种是多字节的
+
+tcp 发送数据，改成了多线程版。
+
+server端接收数据，给改成了这样，但是运行的时候出了问题。貌似卡住了。
+
+![image-20240106191602891](note.assets/image-20240106191602891.png)
+
+![image-20240106191529447](note.assets/image-20240106191529447.png)
+
+![image-20240106191540254](note.assets/image-20240106191540254.png)
+
+需要在父进程里把newsd给关闭了。
+
+![image-20240106192718237](note.assets/image-20240106192718237.png)
+
+可以使用抓包器看一下：
+
+下面这个就是刚刚发送的请求，
+
+![image-20240106193325551](note.assets/image-20240106193325551.png)
+
+右键follow tcp stream。
+
+![image-20240106193725922](note.assets/image-20240106193725922.png)
+
+还可以切换展示形式。
+
+![image-20240106193928537](note.assets/image-20240106193928537.png)
+
+wireshark 页面抓包
+
+```
+这里抓取一张图片，就是用浏览器访问本地服务器的一张图片，需要先部署一个类似nginx的服务，在浏览器上访问的时候根目录就默认映射到了/var/www目录下。
+
+比如访问/cover.png 就映射到了/var/www/cover.png。
+上面的目录映射并不准确，这个还是看web服务器软件映射目录，比如apache2映射目录是/var/www/html
+首先，先把文件给拷贝进去。
+安装依赖： sudo apt install apache2
+启动 ：sudo service  apache2 start
+就可以了，然后在浏览器可以访问了。
+eog cover.png 在ubuntu虚拟机里可以查看图片。
+另外一种方式，用c写一个小程序。
+下载文件并转存./client 127.0.0.1 > /tmp/outx
+再使用eog就可以查看了。
+client.c 是将socket 转成了文件描述符，进行操作的。
+client_send 是直接使用send函数发送请求的。
+./client_send 127.0.0.1 >/tmp/out_send
+```
+
+#### 静态进程池套接字
+
+sever端，listen函数的backlog是5，使用4个进程去接收，客户端的请求， 因为accept函数能够实现互斥，所以多个进程访问时没有问题的。 然后我改了一个，客户端fork30个进程，同时向客户端发送请求。但是有一点比较奇怪，并不是所有的进程都返回了，有几个进程没有返回，程序卡在了那里。我一开始以为，是客户端同时发消息太多，导致有些消息丢了，因为我设置的，但是我查了一下，当 server 端接收到的连接请求超过了 listen 函数设置的 backlog 时，新的连接请求会被操作系统暂时存储在队列中。操作系统会尝试接收并处理尽可能多的连接请求，但如果队列已满，则操作系统会拒绝新的连接请求，通常会向客户端发送 RST（reset）报文，使客户端知道连接请求被拒绝了。但是我看了一下，操作系统设置的队列长度是128
+
+```
+使用这个命令查看操作系统接收网络消息阻塞的队列长度
+sysctl net.core.somaxconn
+net.core.somaxconn = 128
+```
+
+backlog参数说明：[参考链接](https://blog.csdn.net/daocaokafei/article/details/115336575)，这个参数是全连接队列的长度，`min(backlog, somaxconn)`。其中 `backlog` 为调用 `listen` 函数时传递的参数，而 `somaxconn` 是一个系统参数，位置为 `/proc/sys/net/core/somaxconn`，默认值为 128。
+
+然后我在代码里设置的backlog为5，所以全连接队列长度为5，我一下子发送了30个请求，就出现了全连接队列溢出的问题，执行`netstat -s | grep "overflowed"`也确实可以看出溢出了。
+
+全连接队列溢出后行为:通过 `/proc/sys/net/ipv4/tcp_abort_on_overflow` 设置，如果值为`0`, 服务端丢掉握手第三个ack包, 等同于认为客户端并没有回复 ack, 服务端重传 syn+ack 包. 如果值为`1`, 服务端直接回复 rst 包, 关闭连接.
+
+先试一下，把这个参数给置为1:`echo 1 > /proc/sys/net/ipv4/tcp_abort_on_overflow`，可以看出确实出现了connection reset by peer的提示。
+
+[参考链接](https://cloud.tencent.com/developer/article/1638042) [参考链接2](https://blog.isayme.org/posts/issues-47/)
+
+![image-20240114124249105](note.assets/image-20240114124249105.png)
+
+感觉对网络还是了解的不够深入。
+
+上面这个问题是全连接队列满了，因为，tcp连接请求在执行accept之前，会被放到全连接队列里，执行accept之后，就不会了。[参考链接中的图](https://www.cnblogs.com/573583868wuy/p/16310966.html)，我通过调整server端代码里的并发线程数，也证明了这一点，当我把并发线程数调整到40，一下子发了30个请求，这个30个请求都正确返回了结果，并没有出现全连接队满的问题，执行`netstat -s | grep "overflowed"`并没有搜到相关日志，实际上这个也不是那么准确，因为如果之前出现了问题，再执行程序，如果没有问题，可能查到的还是之前出问题的日志，不过反正我只是自己测试，也还好，我重启了一下机器，重新验证了一下，确实没有全连接队列溢出的问题了。
+
+
 
 # 用过的c语言知识
 
