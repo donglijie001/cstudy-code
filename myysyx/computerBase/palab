@@ -1,0 +1,19 @@
+# pa0
+
+
+
+运行项目`make menuconfig`，会报错
+
+```
+make[1]: bison: No such file or directory
+安装：
+sudo apt install bison -y
+然后接着报错
+make[1]: flex: No such file or directory
+再安装
+sudo apt install flex -y
+```
+
+然后就没有问题了，再次运行就出现下面的界面，对了，我这次还装了flameshot，配置参考：https://blog.csdn.net/u013171226/article/details/107717009
+
+![image-20250729224134650](./palab.assets/image-20250729224134650.png)
